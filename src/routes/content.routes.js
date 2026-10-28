@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const contentController = require('../controllers/content.controller');
 const requireAuth = require('../middleware/requireAuth');
+const optionalAuth = require('../middleware/optionalAuth');
 const requireRole = require('../middleware/requireRole');
 const validate = require('../middleware/validate');
 const {
@@ -13,11 +14,11 @@ const asyncHandler = require('../utils/asyncHandler');
 
 const router = Router();
 
-// List all content (paginated)
-router.get('/', validate(listContentSchema), asyncHandler(contentController.listContent));
+// List all content (paginated, optional authentication for paywall access)
+router.get('/', optionalAuth, validate(listContentSchema), asyncHandler(contentController.listContent));
 
-// Get single content item
-router.get('/:id', validate(contentIdParamSchema), asyncHandler(contentController.getContentById));
+// Get single content item (optional authentication for preview vs full content)
+router.get('/:id', optionalAuth, validate(contentIdParamSchema), asyncHandler(contentController.getContentById));
 
 // Create content (creator only)
 router.post(
