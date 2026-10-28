@@ -386,8 +386,8 @@ node scripts/verify-associations.js
 
 | Name | Role |
 |---|---|
-| _Your name_ | _Your area_ |
-| _Teammate_ | _Their area_ |
+| _Divya Rao_ | _Project Architecture & Building_ |
+| _Teammate_ | _Project management & Feature Designing_ |
 
 ---
 
