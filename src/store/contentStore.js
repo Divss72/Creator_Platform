@@ -1,44 +1,78 @@
-const crypto = require('crypto');
+const { Content, Tier, User, CreatorProfile } = require('../models');
 
-// In-memory store holding content records
-const contents = [];
+const formatContent = (contentInstance) => {
+  if (!contentInstance) return null;
+  const content = contentInstance.get({ plain: true });
+  return {
+    id: content.id,
+    creatorId: content.creatorId,
+    title: content.title,
+    body: content.body,
+    minTier: content.minTier ? content.minTier.name : 'free',
+    createdAt: content.createdAt,
+    updatedAt: content.updatedAt
+  };
+};
 
 const contentStore = {
   /**
    * Create a new content item
    */
   async create({ creatorId, title, body, minTier = 'free' }) {
-    const now = new Date();
-    const newContent = {
-      id: crypto.randomUUID(),
+    const tier = await Tier.findOne({ where: { name: minTier || 'free' } });
+    if (!tier) {
+      throw new Error(`Tier '${minTier}' is not recognized`);
+    }
+
+    const newContent = await Content.create({
       creatorId,
       title,
       body,
-      minTier: minTier || 'free',
-      createdAt: now,
-      updatedAt: now
-    };
+      minTierId: tier.id
+    });
 
-    contents.unshift(newContent); // Newest first
-    return { ...newContent };
+    return {
+      id: newContent.id,
+      creatorId: newContent.creatorId,
+      title: newContent.title,
+      body: newContent.body,
+      minTier: tier.name,
+      createdAt: newContent.createdAt,
+      updatedAt: newContent.updatedAt
+    };
   },
 
   /**
-   * Paginated listing of content items
+   * Paginated listing of content items with eager-loaded creator (no N+1)
    */
   async findAll({ page = 1, limit = 10 } = {}) {
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 10));
-    const total = contents.length;
-    const totalPages = Math.ceil(total / limitNum) || 1;
     const offset = (pageNum - 1) * limitNum;
 
-    const items = contents.slice(offset, offset + limitNum).map((item) => ({ ...item }));
+    // Eager loading creator and minTier in a single query
+    const { count, rows } = await Content.findAndCountAll({
+      offset,
+      limit: limitNum,
+      order: [['createdAt', 'DESC']],
+      include: [
+        { model: Tier, as: 'minTier', attributes: ['name', 'rank'] },
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'name'],
+          include: [{ model: CreatorProfile, as: 'profile', attributes: ['displayName'] }]
+        }
+      ]
+    });
+
+    const items = rows.map(formatContent);
+    const totalPages = Math.ceil(count / limitNum) || 1;
 
     return {
       items,
       pagination: {
-        total,
+        total: count,
         page: pageNum,
         limit: limitNum,
         totalPages
@@ -50,53 +84,60 @@ const contentStore = {
    * Find a content item by ID
    */
   async findById(id) {
-    const item = contents.find((c) => c.id === id);
-    return item ? { ...item } : null;
+    if (!id) return null;
+
+    const item = await Content.findByPk(id, {
+      include: [
+        { model: Tier, as: 'minTier', attributes: ['name', 'rank'] },
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'name'],
+          include: [{ model: CreatorProfile, as: 'profile', attributes: ['displayName'] }]
+        }
+      ]
+    });
+
+    return formatContent(item);
   },
 
   /**
    * Update content item
    */
   async update(id, updates) {
-    const index = contents.findIndex((c) => c.id === id);
-    if (index === -1) return null;
+    const content = await Content.findByPk(id, {
+      include: [{ model: Tier, as: 'minTier' }]
+    });
 
-    const current = contents[index];
-    const allowedFields = ['title', 'body', 'minTier'];
-    const filteredUpdates = {};
+    if (!content) return null;
 
-    for (const key of allowedFields) {
-      if (updates[key] !== undefined) {
-        filteredUpdates[key] = updates[key];
+    const updateFields = {};
+    if (updates.title !== undefined) updateFields.title = updates.title;
+    if (updates.body !== undefined) updateFields.body = updates.body;
+
+    if (updates.minTier !== undefined) {
+      const tier = await Tier.findOne({ where: { name: updates.minTier } });
+      if (tier) {
+        updateFields.minTierId = tier.id;
       }
     }
 
-    const updated = {
-      ...current,
-      ...filteredUpdates,
-      updatedAt: new Date()
-    };
+    await content.update(updateFields);
 
-    contents[index] = updated;
-    return { ...updated };
+    // Reload with associations
+    const reloaded = await Content.findByPk(id, {
+      include: [{ model: Tier, as: 'minTier' }]
+    });
+
+    return formatContent(reloaded);
   },
 
   /**
    * Delete content item
    */
   async delete(id) {
-    const index = contents.findIndex((c) => c.id === id);
-    if (index === -1) return false;
-
-    contents.splice(index, 1);
-    return true;
-  },
-
-  /**
-   * Reset store (used for tests)
-   */
-  async reset() {
-    contents.length = 0;
+    const deletedCount = await Content.destroy({ where: { id } });
+    return deletedCount > 0;
   }
 };
 
