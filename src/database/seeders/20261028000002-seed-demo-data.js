@@ -7,12 +7,15 @@ module.exports = {
     const now = new Date();
     const passwordHash = bcrypt.hashSync('Password123!', 10);
 
-    // Fixed UUIDs for predictable relational connections
+    // Valid hex-compliant UUIDs for deterministic paywall verification
     const aliceId = 'a1111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
     const charlieId = 'c1111111-cccc-4ccc-8ccc-cccccccccccc';
-    const bobId = 'b1111111-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
-    const daveId = 'd1111111-dddd-4ddd-8ddd-dddddddddddd';
-    const eveId = 'e1111111-eeee-4eee-8eee-eeeeeeeeeeee';
+
+    const subAId = 'a0000001-aaaa-4aaa-8aaa-aaaaaaaaaaaa'; // Subscriber A (Alice VIP)
+    const subBId = 'b0000002-bbbb-4bbb-8bbb-bbbbbbbbbbbb'; // Subscriber B (Alice Pro)
+    const subCId = 'c0000003-cccc-4ccc-8ccc-cccccccccccc'; // Subscriber C (No subscriptions)
+    const subDId = 'd0000004-dddd-4ddd-8ddd-dddddddddddd'; // Subscriber D (Cancelled sub to Charlie)
+    const subEId = 'e0000005-eeee-4eee-8eee-eeeeeeeeeeee'; // Subscriber E (Expired sub to Charlie)
 
     const freeTierId = '11111111-1111-4111-8111-111111111111';
     const proTierId = '22222222-2222-4222-8222-222222222222';
@@ -39,27 +42,45 @@ module.exports = {
         updated_at: now
       },
       {
-        id: bobId,
-        name: 'Bob Subscriber',
-        email: 'bob.subscriber@creatorhub.local',
+        id: subAId,
+        name: 'Subscriber A (VIP)',
+        email: 'suba.vip@creatorhub.local',
         password_hash: passwordHash,
         role: 'subscriber',
         created_at: now,
         updated_at: now
       },
       {
-        id: daveId,
-        name: 'Dave Subscriber',
-        email: 'dave.subscriber@creatorhub.local',
+        id: subBId,
+        name: 'Subscriber B (Pro)',
+        email: 'subb.pro@creatorhub.local',
         password_hash: passwordHash,
         role: 'subscriber',
         created_at: now,
         updated_at: now
       },
       {
-        id: eveId,
-        name: 'Eve Subscriber',
-        email: 'eve.subscriber@creatorhub.local',
+        id: subCId,
+        name: 'Subscriber C (Free)',
+        email: 'subc.free@creatorhub.local',
+        password_hash: passwordHash,
+        role: 'subscriber',
+        created_at: now,
+        updated_at: now
+      },
+      {
+        id: subDId,
+        name: 'Subscriber D (Cancelled)',
+        email: 'subd.cancelled@creatorhub.local',
+        password_hash: passwordHash,
+        role: 'subscriber',
+        created_at: now,
+        updated_at: now
+      },
+      {
+        id: subEId,
+        name: 'Subscriber E (Expired)',
+        email: 'sube.expired@creatorhub.local',
         password_hash: passwordHash,
         role: 'subscriber',
         created_at: now,
@@ -107,58 +128,58 @@ module.exports = {
       }
     }
 
-    // 3. Content items
+    // 3. Content items across all tiers for both creators (Strict Hex UUIDs)
     const contentItems = [
       {
-        id: 'cf111111-1111-4111-8111-111111111111',
+        id: 'c1111111-1111-4111-8111-111111111111',
         creator_id: aliceId,
-        title: 'Building Resilient Event-Driven Microservices',
-        body: 'Event-driven systems decouple producer and consumer lifecycles. In this guide we explore outbox patterns, idempotent processing, and dead letter queues.',
+        title: 'Building Resilient Event-Driven Microservices (Free)',
+        body: 'Event-driven systems decouple producer and consumer lifecycles. In this free guide we explore outbox patterns, idempotent message processing, and dead letter queues in distributed systems.',
         min_tier_id: freeTierId,
         created_at: new Date(Date.now() - 3600000 * 5),
         updated_at: now
       },
       {
-        id: 'cp222222-2222-4222-8222-222222222222',
+        id: 'c2222222-2222-4222-8222-222222222222',
         creator_id: aliceId,
-        title: 'Pro Guide: Distributed Consensus & Raft Explained',
-        body: 'A deep dive into how leader elections, log replication, and commit indexes prevent split-brain conditions in distributed storage engines.',
+        title: 'Pro Guide: Distributed Consensus & Raft Protocol (Pro)',
+        body: 'In this exclusive pro guide we introduce the core challenges of distributed consensus across modern database clusters. We will explore network splits, quorum requirements, and term numbering. --- DEEP TECHNICAL DIVE BELOW --- Leader elections, log replication, and commit indexes prevent split-brain conditions in distributed storage engines like etcd, CockroachDB, and Kafka metadata.',
         min_tier_id: proTierId,
         created_at: new Date(Date.now() - 3600000 * 3),
         updated_at: now
       },
       {
-        id: 'cv333333-3333-4333-8333-333333333333',
+        id: 'c3333333-3333-4333-8333-333333333333',
         creator_id: aliceId,
-        title: 'VIP Masterclass: Systems Architecture Review Checklist',
-        body: 'Private access checklist and template for evaluating latency SLA guarantees, fault domains, and stateful partition recovery.',
+        title: 'VIP Masterclass: Systems Architecture Review Checklist (VIP)',
+        body: 'Welcome to the private VIP systems architecture review masterclass. In this introductory section we review the essential audit requirements, operational readiness, and service level objectives. --- CONFIDENTIAL VIP DEEP DIVE --- Exclusive checklists covering zero-loss partition failover, automated chaos injection, and blast radius isolation protocols.',
         min_tier_id: vipTierId,
         created_at: new Date(Date.now() - 3600000 * 1),
         updated_at: now
       },
       {
-        id: 'cf444444-4444-4444-8444-444444444444',
+        id: 'c4444444-4444-4444-8444-444444444444',
         creator_id: charlieId,
-        title: 'Getting Started with Kubernetes on Bare Metal',
-        body: 'Demystifying kubeadm, CNI network plugins, and ingress controllers when provisioning Kubernetes outside managed clouds.',
+        title: 'Getting Started with Kubernetes on Bare Metal (Free)',
+        body: 'Demystifying kubeadm, CNI network plugins, and ingress controllers when provisioning Kubernetes outside managed clouds. Hands-on configuration steps included.',
         min_tier_id: freeTierId,
         created_at: new Date(Date.now() - 3600000 * 4),
         updated_at: now
       },
       {
-        id: 'cp555555-5555-4555-8555-555555555555',
+        id: 'c5555555-5555-4555-8555-555555555555',
         creator_id: charlieId,
-        title: 'Pro Guide: GitOps with ArgoCD & Helm',
-        body: 'Continuous reconciliation and declarative configuration for zero-downtime multi-cluster deployments.',
+        title: 'Pro Guide: GitOps with ArgoCD & Helm (Pro)',
+        body: 'Continuous automated reconciliation and declarative configuration drift detection for multi-cluster production environments with zero downtime canary rollouts.',
         min_tier_id: proTierId,
         created_at: new Date(Date.now() - 3600000 * 2),
         updated_at: now
       },
       {
-        id: 'cv666666-6666-4666-8666-666666666666',
+        id: 'c6666666-6666-4666-8666-666666666666',
         creator_id: charlieId,
-        title: 'VIP Workshop: Production Incident Post-Mortem Analysis',
-        body: 'Exclusive case studies of cascading failures, thundering herds, and root cause mitigation strategies.',
+        title: 'VIP Workshop: Production Incident Post-Mortem Analysis (VIP)',
+        body: 'Real incident dissection covering cascading connection pool exhaustion, thundering herd effects on Redis, and automated circuit breaking patterns.',
         min_tier_id: vipTierId,
         created_at: now,
         updated_at: now
@@ -175,22 +196,15 @@ module.exports = {
       }
     }
 
-    // 4. Subscriptions
+    // 4. Subscriptions matrix (Active VIP, Active Pro, Cancelled, Expired)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000);
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 86400000);
+
     const subscriptions = [
+      // Subscriber A: VIP subscription to Alice (Creator 1)
       {
-        id: 's1111111-1111-4111-8111-111111111111',
-        subscriber_id: bobId,
-        creator_id: aliceId,
-        tier_id: proTierId,
-        status: 'active',
-        started_at: now,
-        ends_at: null,
-        created_at: now,
-        updated_at: now
-      },
-      {
-        id: 's2222222-2222-4222-8222-222222222222',
-        subscriber_id: daveId,
+        id: 'fa111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        subscriber_id: subAId,
         creator_id: aliceId,
         tier_id: vipTierId,
         status: 'active',
@@ -199,15 +213,40 @@ module.exports = {
         created_at: now,
         updated_at: now
       },
+      // Subscriber B: Pro subscription to Alice (Creator 1)
       {
-        id: 's3333333-3333-4333-8333-333333333333',
-        subscriber_id: eveId,
-        creator_id: charlieId,
-        tier_id: freeTierId,
+        id: 'fb222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        subscriber_id: subBId,
+        creator_id: aliceId,
+        tier_id: proTierId,
         status: 'active',
         started_at: now,
         ends_at: null,
         created_at: now,
+        updated_at: now
+      },
+      // Subscriber D: Cancelled Pro subscription to Charlie (Creator 2)
+      {
+        id: 'fd444444-dddd-4ddd-8ddd-dddddddddddd',
+        subscriber_id: subDId,
+        creator_id: charlieId,
+        tier_id: proTierId,
+        status: 'cancelled',
+        started_at: thirtyDaysAgo,
+        ends_at: null,
+        created_at: thirtyDaysAgo,
+        updated_at: now
+      },
+      // Subscriber E: Expired VIP subscription to Charlie (Creator 2)
+      {
+        id: 'fe555555-eeee-4eee-8eee-eeeeeeeeeeee',
+        subscriber_id: subEId,
+        creator_id: charlieId,
+        tier_id: vipTierId,
+        status: 'active',
+        started_at: sixtyDaysAgo,
+        ends_at: thirtyDaysAgo, // ends_at in past -> expired
+        created_at: sixtyDaysAgo,
         updated_at: now
       }
     ];
@@ -225,17 +264,17 @@ module.exports = {
     // 5. Comments
     const comments = [
       {
-        id: 'cm111111-1111-4111-8111-111111111111',
-        content_id: 'cf111111-1111-4111-8111-111111111111',
-        user_id: bobId,
+        id: 'ca111111-1111-4111-8111-111111111111',
+        content_id: 'c1111111-1111-4111-8111-111111111111',
+        user_id: subAId,
         body: 'Super clear breakdown of the outbox pattern! Implemented it yesterday.',
         created_at: now,
         updated_at: now
       },
       {
-        id: 'cm222222-2222-4222-8222-222222222222',
-        content_id: 'cp222222-2222-4222-8222-222222222222',
-        user_id: daveId,
+        id: 'ca222222-2222-4222-8222-222222222222',
+        content_id: 'c2222222-2222-4222-8222-222222222222',
+        user_id: subBId,
         body: 'The Raft leader election visualizations made this click immediately.',
         created_at: now,
         updated_at: now
