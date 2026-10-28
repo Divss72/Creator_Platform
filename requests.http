@@ -1,0 +1,253 @@
+### ===================================================================
+### CreatorHub API (v0.1) Test Suite
+### Variables can be set or replaced for manual testing with REST Client
+### ===================================================================
+
+@baseUrl = http://localhost:5000
+@creatorEmail = alice@creatorhub.local
+@subscriberEmail = bob@creatorhub.local
+@password = Password123!
+
+### -------------------------------------------------------------------
+### 1. HEALTH CHECK
+### -------------------------------------------------------------------
+
+### Health Check (Expected: 200 { status: "ok" })
+GET {{baseUrl}}/health
+
+### -------------------------------------------------------------------
+### 2. AUTHENTICATION & REGISTRATION
+### -------------------------------------------------------------------
+
+### Register Creator (Alice) - Expected: 201 { token, user }
+# @name registerCreator
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Alice Creator",
+  "email": "alice@creatorhub.local",
+  "password": "Password123!",
+  "role": "creator"
+}
+
+### Store Alice's Token and User ID from response
+@aliceToken = {{registerCreator.response.body.token}}
+@aliceId = {{registerCreator.response.body.user.id}}
+
+### Register Subscriber (Bob) - Expected: 201 { token, user }
+# @name registerSubscriber
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Bob Fan",
+  "email": "bob@creatorhub.local",
+  "password": "Password123!",
+  "role": "subscriber"
+}
+
+### Store Bob's Token from response
+@bobToken = {{registerSubscriber.response.body.token}}
+
+### Register Second Creator (Charlie) for Ownership Tests - Expected: 201
+# @name registerCreator2
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Charlie AnotherCreator",
+  "email": "charlie@creatorhub.local",
+  "password": "Password123!",
+  "role": "creator"
+}
+
+@charlieToken = {{registerCreator2.response.body.token}}
+
+### Duplicate Email Check - Expected: 409 Conflict
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Alice Duplicate",
+  "email": "alice@creatorhub.local",
+  "password": "Password123!",
+  "role": "creator"
+}
+
+### Validation Error: Password too short (< 8 chars) - Expected: 400
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Short Password User",
+  "email": "short@creatorhub.local",
+  "password": "short",
+  "role": "subscriber"
+}
+
+### Validation Error: Invalid Role - Expected: 400
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Admin Role Attempt",
+  "email": "admin@creatorhub.local",
+  "password": "Password123!",
+  "role": "admin"
+}
+
+### Login Success (Alice) - Expected: 200 { token, user }
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "alice@creatorhub.local",
+  "password": "Password123!"
+}
+
+### Login Failure: Wrong Password - Expected: 401 Unauthorized
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "alice@creatorhub.local",
+  "password": "WrongPassword123!"
+}
+
+### Current User (Alice) - Expected: 200 { user }
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{aliceToken}}
+
+### Current User without Token - Expected: 401 Unauthorized
+GET {{baseUrl}}/api/auth/me
+
+### -------------------------------------------------------------------
+### 3. CREATOR PROFILES
+### -------------------------------------------------------------------
+
+### Get Public Creator Profile (Alice) - Expected: 200 { creator }
+GET {{baseUrl}}/api/creators/{{aliceId}}
+
+### Update Creator Profile (Alice) - Expected: 200 { creator }
+PUT {{baseUrl}}/api/creators/me
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{
+  "displayName": "Alice in Techland",
+  "bio": "Writing in-depth articles on software architecture, systems engineering, and engineering leadership."
+}
+
+### Update Creator Profile by Subscriber (Bob) - Expected: 403 Forbidden
+PUT {{baseUrl}}/api/creators/me
+Authorization: Bearer {{bobToken}}
+Content-Type: application/json
+
+{
+  "displayName": "Hacker Bob",
+  "bio": "Trying to update creator profile as a subscriber"
+}
+
+### -------------------------------------------------------------------
+### 4. CONTENT CREATION & MANAGEMENT
+### -------------------------------------------------------------------
+
+### Create Free Post (Alice) - Expected: 201 { content }
+# @name createFreePost
+POST {{baseUrl}}/api/content
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{
+  "title": "Welcome to my CreatorHub Channel!",
+  "body": "This is a free introductory post accessible to everyone in the community.",
+  "minTier": "free"
+}
+
+@firstPostId = {{createFreePost.response.body.content.id}}
+
+### Create Pro Post (Alice) - Expected: 201 { content }
+POST {{baseUrl}}/api/content
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{
+  "title": "Deep Dive: Building Scalable Systems",
+  "body": "Exclusive deep dive into message queues, cache stampede prevention, and partitioning.",
+  "minTier": "pro"
+}
+
+### Create VIP Post (Alice) - Expected: 201 { content }
+POST {{baseUrl}}/api/content
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{
+  "title": "VIP Mastermind: 1-on-1 Architecture Reviews",
+  "body": "Private schedule links, roadmap reviews, and monthly group office hours for VIP patrons.",
+  "minTier": "vip"
+}
+
+### Subscriber attempts to create content - Expected: 403 Forbidden
+POST {{baseUrl}}/api/content
+Authorization: Bearer {{bobToken}}
+Content-Type: application/json
+
+{
+  "title": "Subscriber post attempt",
+  "body": "Subscribers should never be allowed to publish content.",
+  "minTier": "free"
+}
+
+### Content Validation: Empty title - Expected: 400 Bad Request
+POST {{baseUrl}}/api/content
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{
+  "title": "",
+  "body": "Body with empty title",
+  "minTier": "free"
+}
+
+### -------------------------------------------------------------------
+### 5. CONTENT CONSUMPTION & OWNERSHIP
+### -------------------------------------------------------------------
+
+### List All Content (Paginated) - Expected: 200 { items, pagination }
+GET {{baseUrl}}/api/content?page=1&limit=10
+
+### Get Single Content by ID - Expected: 200 { content }
+GET {{baseUrl}}/api/content/{{firstPostId}}
+
+### Charlie attempts to edit Alice's post - Expected: 403 Forbidden
+PUT {{baseUrl}}/api/content/{{firstPostId}}
+Authorization: Bearer {{charlieToken}}
+Content-Type: application/json
+
+{
+  "title": "Hacked Title by Charlie",
+  "body": "Charlie maliciously modifying Alice's post"
+}
+
+### Alice updates her own post - Expected: 200 { content }
+PUT {{baseUrl}}/api/content/{{firstPostId}}
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{
+  "title": "Welcome to my CreatorHub Channel! (Updated Edition)",
+  "body": "This is the updated introductory post with new resource links."
+}
+
+### Charlie attempts to delete Alice's post - Expected: 403 Forbidden
+DELETE {{baseUrl}}/api/content/{{firstPostId}}
+Authorization: Bearer {{charlieToken}}
+
+### Alice deletes her own post - Expected: 200 { message: "Content deleted successfully" }
+DELETE {{baseUrl}}/api/content/{{firstPostId}}
+Authorization: Bearer {{aliceToken}}
+
+### Verify deleted post is gone - Expected: 404 Not Found
+GET {{baseUrl}}/api/content/{{firstPostId}}
