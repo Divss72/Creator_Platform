@@ -39,3 +39,28 @@
 - Controllers remain 100% decoupled from Sequelize ORM models; all database logic is encapsulated within `src/store/`.
 - Full schema created for `subscriptions` and `comments` in advance of v0.3 and v0.4 features.
 - Running `npm run db:reset` drops, recreates, migrates, and seeds the entire database idempotently.
+
+### v0.3: Subscriptions + Paywall (Completed)
+- [x] Implementation plan approved
+- [x] Tier repository and store caching in `src/store/tierStore.js`
+- [x] Public `GET /api/tiers` endpoint returning dynamic ranks and pricing
+- [x] Framework-independent access control service in `src/services/accessService.js` (no Express objects)
+- [x] Mock payment processor in `src/services/mockPaymentService.js` with `TODO(future)`
+- [x] Subscription repository in `src/store/subscriptionStore.js` with idempotent subscribe, cancel, and bulk lookup
+- [x] `optionalAuth` middleware (attaches user on valid token, null on missing token, 401 on malformed/expired)
+- [x] `requireTier` middleware for fixed tier route restrictions
+- [x] Subscription management endpoints (`POST /api/subscriptions`, `GET /api/subscriptions/me`, `DELETE /api/subscriptions/:creatorId`)
+- [x] Paywall preview enforcement on `GET /api/content` and `GET /api/content/:id` (`locked`, `body: null`, `excerpt`, `viewerTier`)
+- [x] Zero body leakage on locked content via explicit allow-list field construction
+- [x] Constant query count on content lists via `findActiveByViewerAndCreators` (single query for all creators on feed)
+- [x] Idempotent paywall matrix seeds (`seed-demo-data.js`) covering Free, Pro, VIP posts and Active/Cancelled/Expired subscriptions
+- [x] Automated test suite `scripts/verify-paywall.js` passing 56/56 checks
+- [x] Regression testing: v0.1 and v0.2 suites passing 24/24 checks
+- [x] Documentation updated: `README.md`, `requests.http`, `docs/PROGRESS.md`, `docs/PR-v0.3.md`
+
+#### Notes & Decisions (v0.3):
+- **Access Rule Decoupling**: All tier resolution and paywall evaluation logic is fully isolated in `src/services/accessService.js` with pure functions, ready for reuse in v0.4 (Socket.io) and v0.5 (GraphQL).
+- **Single-Query Bulk Lookups**: Content feed loads viewer active subscriptions across all post creators using a single `WHERE subscriber_id = :viewerId AND creator_id IN (:creatorIds)` query mapped into a `Map<creatorId, Subscription>`, completely preventing N+1 queries.
+- **Paywall Response Contract**: A locked item detail request returns `200 OK` (not `403` or `402`), enabling clients to display rich teaser previews and upgrade prompts.
+- **Strict UUID Hex Format**: Seeded IDs conform strictly to RFC 4122 hexadecimal UUID format (`[0-9a-f]`) to pass Zod validation across all endpoints.
+
