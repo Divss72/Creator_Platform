@@ -261,23 +261,72 @@ module.exports = {
       }
     }
 
-    // 5. Comments
+    // 5. Comments (plain text, realistic, attached to posts of different tiers)
+    const tenMinAgo = new Date(Date.now() - 10 * 60000);
+    const twentyMinAgo = new Date(Date.now() - 20 * 60000);
+    const thirtyMinAgo = new Date(Date.now() - 30 * 60000);
+    const fiveMinAgo = new Date(Date.now() - 5 * 60000);
+    const twoMinAgo = new Date(Date.now() - 2 * 60000);
+
     const comments = [
+      // Free Post Comments (c111...)
       {
         id: 'ca111111-1111-4111-8111-111111111111',
         content_id: 'c1111111-1111-4111-8111-111111111111',
         user_id: subAId,
         body: 'Super clear breakdown of the outbox pattern! Implemented it yesterday.',
-        created_at: now,
-        updated_at: now
+        created_at: thirtyMinAgo,
+        updated_at: thirtyMinAgo
       },
+      {
+        id: 'ca111112-1111-4111-8111-111111111112',
+        content_id: 'c1111111-1111-4111-8111-111111111111',
+        user_id: subBId,
+        body: 'Agreed, the retry loop and dead letter handling were especially insightful.',
+        created_at: twentyMinAgo,
+        updated_at: twentyMinAgo
+      },
+      {
+        id: 'ca111113-1111-4111-8111-111111111113',
+        content_id: 'c1111111-1111-4111-8111-111111111111',
+        user_id: aliceId,
+        body: 'Thanks everyone! Let me know if you run into any edge cases with concurrent pollers.',
+        created_at: fiveMinAgo,
+        updated_at: fiveMinAgo
+      },
+      // Pro Post Comments (c222...)
       {
         id: 'ca222222-2222-4222-8222-222222222222',
         content_id: 'c2222222-2222-4222-8222-222222222222',
         user_id: subBId,
         body: 'The Raft leader election visualizations made this click immediately.',
-        created_at: now,
-        updated_at: now
+        created_at: twentyMinAgo,
+        updated_at: twentyMinAgo
+      },
+      {
+        id: 'ca222223-2222-4222-8222-222222222223',
+        content_id: 'c2222222-2222-4222-8222-222222222222',
+        user_id: subAId,
+        body: 'How does this compare to Paxos leases in practical cloud deployments?',
+        created_at: tenMinAgo,
+        updated_at: tenMinAgo
+      },
+      // VIP Post Comments (c333...)
+      {
+        id: 'ca333331-3333-4333-8333-333333333331',
+        content_id: 'c3333333-3333-4333-8333-333333333333',
+        user_id: subAId,
+        body: 'The blast radius isolation section is pure gold for our upcoming architecture audit.',
+        created_at: tenMinAgo,
+        updated_at: tenMinAgo
+      },
+      {
+        id: 'ca333332-3333-4333-8333-333333333332',
+        content_id: 'c3333333-3333-4333-8333-333333333333',
+        user_id: aliceId,
+        body: 'Great to hear, Bob! Feel free to ask any questions in the live chat session.',
+        created_at: twoMinAgo,
+        updated_at: twoMinAgo
       }
     ];
 

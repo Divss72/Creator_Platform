@@ -9,11 +9,15 @@ const ApiError = require('../utils/apiError');
 // Central error handler formatting all responses as { error: { code, message } }
 const errorHandler = (err, req, res, next) => {
   if (err instanceof ApiError) {
+    const errorBody = {
+      code: err.code,
+      message: err.message
+    };
+    if (err.details !== undefined && err.details !== null) {
+      errorBody.details = err.details;
+    }
     return res.status(err.statusCode).json({
-      error: {
-        code: err.code,
-        message: err.message
-      }
+      error: errorBody
     });
   }
 
