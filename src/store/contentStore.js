@@ -1,5 +1,12 @@
 const { Content, Tier, User, CreatorProfile } = require('../models');
 
+const creatorInclude = {
+  model: User,
+  as: 'creator',
+  attributes: ['id', 'name'],
+  include: [{ model: CreatorProfile, as: 'profile', attributes: ['displayName'] }]
+};
+
 const formatContent = (contentInstance) => {
   if (!contentInstance) return null;
   const content = contentInstance.get({ plain: true });
@@ -9,6 +16,13 @@ const formatContent = (contentInstance) => {
     title: content.title,
     body: content.body,
     minTier: content.minTier ? content.minTier.name : 'free',
+    creator: content.creator
+      ? {
+          id: content.creator.id,
+          name: content.creator.name,
+          displayName: content.creator.profile ? content.creator.profile.displayName : content.creator.name
+        }
+      : undefined,
     createdAt: content.createdAt,
     updatedAt: content.updatedAt
   };
@@ -31,15 +45,14 @@ const contentStore = {
       minTierId: tier.id
     });
 
-    return {
-      id: newContent.id,
-      creatorId: newContent.creatorId,
-      title: newContent.title,
-      body: newContent.body,
-      minTier: tier.name,
-      createdAt: newContent.createdAt,
-      updatedAt: newContent.updatedAt
-    };
+    const reloaded = await Content.findByPk(newContent.id, {
+      include: [
+        { model: Tier, as: 'minTier', attributes: ['name', 'rank'] },
+        creatorInclude
+      ]
+    });
+
+    return formatContent(reloaded);
   },
 
   /**
@@ -57,12 +70,7 @@ const contentStore = {
       order: [['createdAt', 'DESC']],
       include: [
         { model: Tier, as: 'minTier', attributes: ['name', 'rank'] },
-        {
-          model: User,
-          as: 'creator',
-          attributes: ['id', 'name'],
-          include: [{ model: CreatorProfile, as: 'profile', attributes: ['displayName'] }]
-        }
+        creatorInclude
       ]
     });
 
@@ -89,12 +97,7 @@ const contentStore = {
     const item = await Content.findByPk(id, {
       include: [
         { model: Tier, as: 'minTier', attributes: ['name', 'rank'] },
-        {
-          model: User,
-          as: 'creator',
-          attributes: ['id', 'name'],
-          include: [{ model: CreatorProfile, as: 'profile', attributes: ['displayName'] }]
-        }
+        creatorInclude
       ]
     });
 
@@ -126,7 +129,10 @@ const contentStore = {
 
     // Reload with associations
     const reloaded = await Content.findByPk(id, {
-      include: [{ model: Tier, as: 'minTier' }]
+      include: [
+        { model: Tier, as: 'minTier', attributes: ['name', 'rank'] },
+        creatorInclude
+      ]
     });
 
     return formatContent(reloaded);

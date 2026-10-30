@@ -1,8 +1,8 @@
-# CreatorHub API (v0.2)
+# CreatorHub API (v0.3)
 
 > **Creator Economy Platform** — A subscription platform where creators publish tiered content (Free / Pro / VIP) and fans subscribe and chat live on each post.
 
-Version 0.2 introduces persistent relational storage backed by **MySQL 8** and **Sequelize ORM**, replacing the in-memory data store without breaking any v0.1 API behaviors.
+Version 0.3 introduces **Access Tiers, Subscriptions & Content Paywall**, featuring framework-independent access resolution, mock subscription purchases with idempotent upgrades/cancellations, and server-side preview enforcement.
 
 ---
 
@@ -54,6 +54,7 @@ cp .env.example .env
 | `DB_USER` | MySQL username | `creatorhub_user` |
 | `DB_PASSWORD` | MySQL user password | `creatorhub_pass` |
 | `DB_LOGGING` | Enable SQL query logging in console (`true` or `false`) | `false` |
+| `CORS_ORIGIN` | Allowed origins for Socket.io (`*` in dev only, comma-separated in production) | `*` |
 
 ### 3. Initialize Database, Run Migrations & Seed
 Run the all-in-one reset script (creates DB, runs migrations, seeds initial data):
@@ -71,6 +72,40 @@ npm run db:reset
   npm start
   ```
 
+### 5. Verify the Paywall & Access Tiers
+Run the automated paywall verification suite:
+```bash
+npm run verify:paywall
+```
+
+---
+
+## How Access Tiers Work
+
+### 1. Tier Hierarchy
+Platform tiers are dynamically ranked and stored in the `tiers` table (never hardcoded in controllers):
+- `free` = Rank 0 ($0.00)
+- `pro` = Rank 1 ($9.99 / 999 cents)
+- `vip` = Rank 2 ($29.99 / 2999 cents)
+
+### 2. Scoped Subscriptions
+Subscriptions are strictly **per creator** (`UNIQUE(subscriber_id, creator_id)`). Being VIP for Creator A grants zero access privileges to Creator B's gated content.
+
+### 3. Effective Tier Resolution
+The effective tier of any viewer requesting content by a specific creator is resolved via `src/services/accessService.js`:
+1. **Content Owner**: The viewer is the creator who published the content &rarr; Full access to all own content (effective tier: `vip`).
+2. **Active Subscriber**: The viewer has a subscription to that creator with `status === 'active'` and (`ends_at IS NULL` OR `ends_at > NOW()`) &rarr; That subscription's tier.
+3. **Everyone Else**: Anonymous visitors, unsubscribed users, cancelled (`status === 'cancelled'`), or expired (`ends_at <= NOW()`) subscriptions &rarr; Effective tier: `free`.
+
+### 4. Access Rule & Paywall Preview
+- A viewer can read the full body when `viewerRank >= contentMinTierRank`.
+- **Free content** is accessible to everyone in full, including unauthenticated visitors.
+- **Locked content**:
+  - The API returns `200 OK` (preview), **not** `403` or `402`.
+  - Full `body` is set to `null` and **never leaks** to the client anywhere in the JSON response (constructed from an allow-list of fields).
+  - A server-generated `excerpt` (~200 characters) is provided so the client can render an engaging preview and upgrade prompt.
+- **Bulk Feed Optimization**: `resolveAccessBulk` fetches the viewer's active subscriptions for all creators on the page in a **single query**, eliminating N+1 queries.
+
 ---
 
 ## Database Scripts
@@ -81,22 +116,26 @@ npm run db:reset
 | `npm run db:drop` | Drops the database if it exists |
 | `npm run db:migrate` | Runs all pending database migrations in sequence |
 | `npm run db:migrate:undo` | Rolls back all applied migrations cleanly |
-| `npm run db:seed` | Runs idempotent seeders for tiers and demo dataset |
+| `npm run db:seed` | Runs idempotent seeders for tiers and demo paywall dataset |
 | `npm run db:reset` | Drops DB, recreates DB, migrates schema, and seeds demo data |
-| `node scripts/verify-associations.js` | Runs bidirectional relation verification script across all models |
+| `npm run verify:paywall` | Runs comprehensive 56-check paywall and access verification suite |
+| `npm run verify:associations` | Runs bidirectional relation verification script across all models |
+| `npm run verify:realtime` | Runs automated 65-check Socket.io realtime and chat verification suite |
 
 ---
 
 ## Seeded Demo Accounts (Development & Demo Only)
 All demo account passwords are: `Password123!`
 
-| Role | Name | Email | Bio / Notes |
+| Role | Name | Email | Subscription / Paywall Matrix State |
 | :--- | :--- | :--- | :--- |
-| **Creator** | Alice Creator | `alice.creator@creatorhub.local` | Distributed systems, event streams, microservices |
-| **Creator** | Charlie Creator | `charlie.creator@creatorhub.local` | Kubernetes, Cloud Native, DevOps engineering |
-| **Subscriber** | Bob Subscriber | `bob.subscriber@creatorhub.local` | Subscribed to Alice (Pro tier) |
-| **Subscriber** | Dave Subscriber | `dave.subscriber@creatorhub.local` | Subscribed to Alice (VIP tier) |
-| **Subscriber** | Eve Subscriber | `eve.subscriber@creatorhub.local` | Subscribed to Charlie (Free tier) |
+| **Creator** | Alice Creator | `alice.creator@creatorhub.local` | Has Free, Pro, and VIP posts (Creator 1) |
+| **Creator** | Charlie Creator | `charlie.creator@creatorhub.local` | Has Free, Pro, and VIP posts (Creator 2) |
+| **Subscriber** | Subscriber A (VIP) | `suba.vip@creatorhub.local` | Active **VIP** subscription to Alice |
+| **Subscriber** | Subscriber B (Pro) | `subb.pro@creatorhub.local` | Active **Pro** subscription to Alice |
+| **Subscriber** | Subscriber C (Free) | `subc.free@creatorhub.local` | No active subscriptions (Free viewer) |
+| **Subscriber** | Subscriber D (Cancelled) | `subd.cancelled@creatorhub.local` | **Cancelled** subscription to Charlie |
+| **Subscriber** | Subscriber E (Expired) | `sube.expired@creatorhub.local` | **Expired** subscription to Charlie (`ends_at` in past) |
 
 > ⚠️ **Security Warning**: Demo accounts and credentials are for local development and testing only. Never use these credentials in production environments.
 
@@ -118,14 +157,112 @@ All demo account passwords are: `Password123!`
 - `GET /api/creators/:id` — Public creator profile (`id`, `name`, `displayName`, `bio`).
 - `PUT /api/creators/me` — Update authenticated creator profile (Creator only).
 
-### Content Management
+### Tiers (v0.3)
+- `GET /api/tiers` — Public. Returns all platform tiers with ranks and prices:
+  ```json
+  {
+    "tiers": [
+      { "name": "free", "rank": 0, "priceCents": 0 },
+      { "name": "pro", "rank": 1, "priceCents": 999 },
+      { "name": "vip", "rank": 2, "priceCents": 2999 }
+    ]
+  }
+  ```
+
+### Subscriptions (v0.3)
+*All subscription endpoints require `subscriber` role authentication (`Authorization: Bearer <token>`).*
+- `POST /api/subscriptions` — Mock purchase / tier update.
+  - Body: `{ "creatorId": "<uuid>", "tier": "free" | "pro" | "vip" }`
+  - Status codes:
+    - `201 Created`: When a new subscription is created.
+    - `200 OK`: When updating tier (upgrade/downgrade), re-activating a cancelled subscription, or identical active tier (idempotent).
+    - `403 Forbidden`: When a creator attempts to subscribe.
+    - `404 Not Found`: Unknown creator ID or target user is not a creator.
+    - `400 Bad Request`: Invalid tier or validation error.
+- `GET /api/subscriptions/me` — List all subscriptions for authenticated subscriber with creator ID, displayName, tier, and status.
+- `DELETE /api/subscriptions/:creatorId` — Cancel subscription to creator (sets `status: "cancelled"`, immediate revocation).
+
+### Content Management & Paywall (v0.3)
 - `POST /api/content` — Publish post (Creator only). Body: `{ title, body, minTier }`.
-- `GET /api/content` — List paginated content (`?page=1&limit=10`).
-- `GET /api/content/:id` — Retrieve single post by ID.
+- `GET /api/content` — List paginated content (`?page=1&limit=10`). Optional authentication (`optionalAuth`).
+- `GET /api/content/:id` — Retrieve single post. Optional authentication (`optionalAuth`). Returns `200` with preview when locked.
 - `PUT /api/content/:id` — Update post (Owner creator only).
 - `DELETE /api/content/:id` — Delete post (Owner creator only).
+
+### Chat History & Comments (v0.4)
+- `GET /api/content/:id/comments` — Retrieve paginated comments for a post (`?limit=50&before=<commentId>`).
+  - Uses `optionalAuth`.
+  - Same paywall rules apply: if content is locked for the viewer, returns `403 Forbidden` (`TIER_REQUIRED` with `details: { requiredTier, viewerTier }`).
+  - Returns: `{ items: [...oldest to newest within page], nextBefore: string | null }`.
+  - Comment writes happen **strictly over Socket.io** (single write path).
+
+#### Content Item Response Shape
+```json
+{
+  "id": "77777777-7777-4777-8777-777777777771",
+  "title": "Welcome to my Creator Channel",
+  "minTier": "pro",
+  "creator": {
+    "id": "a1111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "name": "Alice Creator",
+    "displayName": "Alice Creator"
+  },
+  "locked": true,
+  "body": null,
+  "excerpt": "Welcome everyone! In this post, we discuss the basics of distributed architectures...",
+  "viewerTier": "free",
+  "createdAt": "2026-10-28T05:00:00.000Z",
+  "updatedAt": "2026-10-28T05:00:00.000Z"
+}
+```
+
+---
+
+## Socket.io Realtime Service (v0.4)
+
+Socket.io attaches directly to the HTTP server on port `5000`. Authenticate during handshake via `io(url, { auth: { token } })` or connect anonymously by omitting `token`.
+
+### Realtime Events Matrix
+
+| Event | Direction | Auth Required | Payload | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `post:join` | Client &rarr; Server | Optional | `{ contentId }` | Joins room `post:{contentId}` if viewer has paywall access. Ack: `{ contentId, viewerCount, canComment }`. Max 10 rooms per socket. |
+| `post:leave` | Client &rarr; Server | Optional | `{ contentId }` | Leaves room and updates distinct presence. Ack: `{ contentId }`. |
+| `comment:create` | Client &rarr; Server | Required | `{ contentId, body }` | Validates body (1-1000 chars, plain text), re-verifies live access, persists to DB, broadcasts `comment:new`. Ack: `{ comment }`. |
+| `comment:new` | Server &rarr; Client | - | `{ id, contentId, body, createdAt, user }` | Broadcast to entire room including sender. Plain-text only. |
+| `viewers:update` | Server &rarr; Client | - | `{ contentId, count }` | Broadcast to room when distinct viewer count changes. |
+| `access:revoked` | Server &rarr; Client | - | `{ contentId, reason }` | Sent to socket when subscription cancellation or post update revokes room access. |
+| `post:deleted` | Server &rarr; Client | - | `{ contentId }` | Broadcast to room when post is deleted over REST; room is subsequently emptied. |
+
+For detailed packet structures, error codes, and frontend sequence diagrams, see [docs/REALTIME.md](docs/REALTIME.md).
+
+---
+
+## Try the Live Chat (/dev/chat)
+
+When running in development (`NODE_ENV=development`), CreatorHub serves a standalone test page at:
+
+```
+http://localhost:5000/dev/chat
+```
+
+### How to Test Live Chat Interactively:
+1. **Connect**:
+   - To connect **anonymously**: Leave the token field blank and click **Connect**.
+   - To connect as a **subscriber or creator**: Paste a JWT token (e.g. from `/api/auth/login`) and click **Connect**.
+2. **Explore a Post Room**:
+   - Enter a content ID (e.g. Alice's Free Post `c1111111-1111-4111-8111-111111111111` or VIP Post `c3333333-3333-4333-8333-333333333333`).
+   - Click **Get History** to load past comments via `GET /api/content/:id/comments`.
+   - Click **Join Room** to subscribe to live updates. Notice the distinct viewer count increments.
+3. **Send Live Comments**:
+   - If authenticated with valid access, type a message and click **Send**. The comment appears instantly across all tabs in that room.
+4. **Test Real-Time Revocation**:
+   - Open a second browser tab, log in as Subscriber C, upgrade to Pro, and join Alice's Pro post room.
+   - Cancel the subscription via REST: notice the socket immediately receives `access:revoked` and comment capabilities are disabled.
 
 ---
 
 ## Architecture & Database Design
 For detailed Entity-Relationship diagrams, table descriptions, indexes, and design decisions, refer to [docs/DB-SCHEMA.md](docs/DB-SCHEMA.md).
+
+

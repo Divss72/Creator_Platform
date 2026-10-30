@@ -251,3 +251,156 @@ Authorization: Bearer {{aliceToken}}
 
 ### Verify deleted post is gone - Expected: 404 Not Found
 GET {{baseUrl}}/api/content/{{firstPostId}}
+
+### -------------------------------------------------------------------
+### 6. TIERS (v0.3)
+### -------------------------------------------------------------------
+
+### List All Tiers (Public) - Expected: 200 { tiers: [{ name, rank, priceCents }] }
+GET {{baseUrl}}/api/tiers
+
+### -------------------------------------------------------------------
+### 7. SUBSCRIPTIONS (v0.3)
+### -------------------------------------------------------------------
+
+### Seeded Creator Alice's ID for subscription testing
+@aliceCreatorId = c1111111-1111-1111-1111-111111111111
+@charlieCreatorId = c2222222-2222-2222-2222-222222222222
+
+### Bob subscribes to Alice at Pro tier - Expected: 201 Created or 200 OK
+# @name bobSubscribePro
+POST {{baseUrl}}/api/subscriptions
+Authorization: Bearer {{bobToken}}
+Content-Type: application/json
+
+{
+  "creatorId": "{{aliceCreatorId}}",
+  "tier": "pro"
+}
+
+### Bob retrieves his active subscriptions - Expected: 200 { subscriptions }
+GET {{baseUrl}}/api/subscriptions/me
+Authorization: Bearer {{bobToken}}
+
+### Bob upgrades subscription to VIP - Expected: 200 OK
+POST {{baseUrl}}/api/subscriptions
+Authorization: Bearer {{bobToken}}
+Content-Type: application/json
+
+{
+  "creatorId": "{{aliceCreatorId}}",
+  "tier": "vip"
+}
+
+### Bob cancels his subscription to Alice - Expected: 200 { message: "Subscription cancelled successfully" }
+DELETE {{baseUrl}}/api/subscriptions/{{aliceCreatorId}}
+Authorization: Bearer {{bobToken}}
+
+### Verify Bob's subscription list reflects cancelled status
+GET {{baseUrl}}/api/subscriptions/me
+Authorization: Bearer {{bobToken}}
+
+### Creator attempts to subscribe to another creator - Expected: 403 Forbidden
+POST {{baseUrl}}/api/subscriptions
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{
+  "creatorId": "{{charlieCreatorId}}",
+  "tier": "pro"
+}
+
+### Subscribe with invalid tier - Expected: 400 Bad Request
+POST {{baseUrl}}/api/subscriptions
+Authorization: Bearer {{bobToken}}
+Content-Type: application/json
+
+{
+  "creatorId": "{{aliceCreatorId}}",
+  "tier": "ultra_vip"
+}
+
+### -------------------------------------------------------------------
+### 8. PAYWALL & CONTENT ACCESS (v0.3)
+### -------------------------------------------------------------------
+
+### Anonymous views content feed - Expected: 200 (Free has body, Pro/VIP locked:true, body:null, excerpt present)
+GET {{baseUrl}}/api/content
+
+### Pro subscriber views content feed - Expected: 200 (Free and Pro have body, VIP locked:true, body:null)
+# (Use seeded Subscriber B: bob.fan@creatorhub.local / Password123!)
+# @name loginSubB
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "bob.fan@creatorhub.local",
+  "password": "Password123!"
+}
+
+@subBToken = {{loginSubB.response.body.token}}
+
+GET {{baseUrl}}/api/content
+Authorization: Bearer {{subBToken}}
+
+### VIP subscriber views content feed - Expected: 200 (All posts for Creator 1 unlocked)
+# (Use seeded Subscriber A: alice.fan@creatorhub.local / Password123!)
+# @name loginSubA
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "alice.fan@creatorhub.local",
+  "password": "Password123!"
+}
+
+@subAToken = {{loginSubA.response.body.token}}
+
+GET {{baseUrl}}/api/content
+Authorization: Bearer {{subAToken}}
+
+### Owner views content - Expected: 200 (All of owner's posts unlocked: locked:false, full body)
+# @name loginAliceOwner
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "alice@creatorhub.local",
+  "password": "Password123!"
+}
+
+@aliceOwnerToken = {{loginAliceOwner.response.body.token}}
+
+GET {{baseUrl}}/api/content
+Authorization: Bearer {{aliceOwnerToken}}
+
+### -------------------------------------------------------------------
+### 9. CHAT HISTORY & COMMENTS (v0.4)
+### -------------------------------------------------------------------
+
+### Seeded post IDs
+@freePostId = c1111111-1111-4111-8111-111111111111
+@proPostId = c2222222-2222-4222-8222-222222222222
+@vipPostId = c3333333-3333-4333-8333-333333333333
+
+### Get comments on Free post (Anonymous allowed) - Expected: 200 { items: [...], nextBefore }
+GET {{baseUrl}}/api/content/{{freePostId}}/comments?limit=2
+
+### Get comments on Free post using cursor pagination - Expected: 200
+GET {{baseUrl}}/api/content/{{freePostId}}/comments?limit=2&before=ca111112-1111-4111-8111-111111111112
+
+### Get comments on Pro post (Anonymous locked) - Expected: 403 { error: { code: "TIER_REQUIRED", details: { requiredTier: "pro", viewerTier: "free" } } }
+GET {{baseUrl}}/api/content/{{proPostId}}/comments
+
+### Get comments on Pro post (Pro subscriber unlocked) - Expected: 200
+GET {{baseUrl}}/api/content/{{proPostId}}/comments
+Authorization: Bearer {{subBToken}}
+
+### Get comments on VIP post (VIP subscriber unlocked) - Expected: 200
+GET {{baseUrl}}/api/content/{{vipPostId}}/comments
+Authorization: Bearer {{subAToken}}
+
+### Get comments on VIP post (Pro subscriber locked) - Expected: 403 TIER_REQUIRED
+GET {{baseUrl}}/api/content/{{vipPostId}}/comments
+Authorization: Bearer {{subBToken}}
+

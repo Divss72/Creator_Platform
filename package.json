@@ -11,7 +11,10 @@
     "db:migrate": "npx sequelize-cli db:migrate",
     "db:migrate:undo": "npx sequelize-cli db:migrate:undo:all",
     "db:seed": "npx sequelize-cli db:seed:all",
-    "db:reset": "npm run db:drop && npm run db:create && npm run db:migrate && npm run db:seed"
+    "db:reset": "npm run db:drop && npm run db:create && npm run db:migrate && npm run db:seed",
+    "verify:paywall": "node scripts/verify-paywall.js",
+    "verify:associations": "node scripts/verify-associations.js",
+    "verify:realtime": "node scripts/verify-realtime.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -21,11 +24,13 @@
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.24.6",
     "sequelize": "^6.37.8",
+    "socket.io": "^4.8.4",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.9",
-    "sequelize-cli": "^6.6.5"
+    "sequelize-cli": "^6.6.5",
+    "socket.io-client": "^4.8.4"
   },
   "engines": {
     "node": ">=20.0.0"
