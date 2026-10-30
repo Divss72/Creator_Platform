@@ -54,6 +54,7 @@ cp .env.example .env
 | `DB_USER` | MySQL username | `creatorhub_user` |
 | `DB_PASSWORD` | MySQL user password | `creatorhub_pass` |
 | `DB_LOGGING` | Enable SQL query logging in console (`true` or `false`) | `false` |
+| `CORS_ORIGIN` | Allowed origins for Socket.io (`*` in dev only, comma-separated in production) | `*` |
 
 ### 3. Initialize Database, Run Migrations & Seed
 Run the all-in-one reset script (creates DB, runs migrations, seeds initial data):
@@ -119,6 +120,7 @@ The effective tier of any viewer requesting content by a specific creator is res
 | `npm run db:reset` | Drops DB, recreates DB, migrates schema, and seeds demo data |
 | `npm run verify:paywall` | Runs comprehensive 56-check paywall and access verification suite |
 | `npm run verify:associations` | Runs bidirectional relation verification script across all models |
+| `npm run verify:realtime` | Runs automated 65-check Socket.io realtime and chat verification suite |
 
 ---
 
@@ -187,6 +189,13 @@ All demo account passwords are: `Password123!`
 - `PUT /api/content/:id` — Update post (Owner creator only).
 - `DELETE /api/content/:id` — Delete post (Owner creator only).
 
+### Chat History & Comments (v0.4)
+- `GET /api/content/:id/comments` — Retrieve paginated comments for a post (`?limit=50&before=<commentId>`).
+  - Uses `optionalAuth`.
+  - Same paywall rules apply: if content is locked for the viewer, returns `403 Forbidden` (`TIER_REQUIRED` with `details: { requiredTier, viewerTier }`).
+  - Returns: `{ items: [...oldest to newest within page], nextBefore: string | null }`.
+  - Comment writes happen **strictly over Socket.io** (single write path).
+
 #### Content Item Response Shape
 ```json
 {
@@ -209,6 +218,51 @@ All demo account passwords are: `Password123!`
 
 ---
 
+## Socket.io Realtime Service (v0.4)
+
+Socket.io attaches directly to the HTTP server on port `5000`. Authenticate during handshake via `io(url, { auth: { token } })` or connect anonymously by omitting `token`.
+
+### Realtime Events Matrix
+
+| Event | Direction | Auth Required | Payload | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `post:join` | Client &rarr; Server | Optional | `{ contentId }` | Joins room `post:{contentId}` if viewer has paywall access. Ack: `{ contentId, viewerCount, canComment }`. Max 10 rooms per socket. |
+| `post:leave` | Client &rarr; Server | Optional | `{ contentId }` | Leaves room and updates distinct presence. Ack: `{ contentId }`. |
+| `comment:create` | Client &rarr; Server | Required | `{ contentId, body }` | Validates body (1-1000 chars, plain text), re-verifies live access, persists to DB, broadcasts `comment:new`. Ack: `{ comment }`. |
+| `comment:new` | Server &rarr; Client | - | `{ id, contentId, body, createdAt, user }` | Broadcast to entire room including sender. Plain-text only. |
+| `viewers:update` | Server &rarr; Client | - | `{ contentId, count }` | Broadcast to room when distinct viewer count changes. |
+| `access:revoked` | Server &rarr; Client | - | `{ contentId, reason }` | Sent to socket when subscription cancellation or post update revokes room access. |
+| `post:deleted` | Server &rarr; Client | - | `{ contentId }` | Broadcast to room when post is deleted over REST; room is subsequently emptied. |
+
+For detailed packet structures, error codes, and frontend sequence diagrams, see [docs/REALTIME.md](docs/REALTIME.md).
+
+---
+
+## Try the Live Chat (/dev/chat)
+
+When running in development (`NODE_ENV=development`), CreatorHub serves a standalone test page at:
+
+```
+http://localhost:5000/dev/chat
+```
+
+### How to Test Live Chat Interactively:
+1. **Connect**:
+   - To connect **anonymously**: Leave the token field blank and click **Connect**.
+   - To connect as a **subscriber or creator**: Paste a JWT token (e.g. from `/api/auth/login`) and click **Connect**.
+2. **Explore a Post Room**:
+   - Enter a content ID (e.g. Alice's Free Post `c1111111-1111-4111-8111-111111111111` or VIP Post `c3333333-3333-4333-8333-333333333333`).
+   - Click **Get History** to load past comments via `GET /api/content/:id/comments`.
+   - Click **Join Room** to subscribe to live updates. Notice the distinct viewer count increments.
+3. **Send Live Comments**:
+   - If authenticated with valid access, type a message and click **Send**. The comment appears instantly across all tabs in that room.
+4. **Test Real-Time Revocation**:
+   - Open a second browser tab, log in as Subscriber C, upgrade to Pro, and join Alice's Pro post room.
+   - Cancel the subscription via REST: notice the socket immediately receives `access:revoked` and comment capabilities are disabled.
+
+---
+
 ## Architecture & Database Design
 For detailed Entity-Relationship diagrams, table descriptions, indexes, and design decisions, refer to [docs/DB-SCHEMA.md](docs/DB-SCHEMA.md).
+
 

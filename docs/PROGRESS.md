@@ -64,3 +64,34 @@
 - **Paywall Response Contract**: A locked item detail request returns `200 OK` (not `403` or `402`), enabling clients to display rich teaser previews and upgrade prompts.
 - **Strict UUID Hex Format**: Seeded IDs conform strictly to RFC 4122 hexadecimal UUID format (`[0-9a-f]`) to pass Zod validation across all endpoints.
 
+### v0.4: Realtime Socket.io & Live Chat (Completed)
+- [x] Implementation plan approved
+- [x] Installed `socket.io` and dev-dependency `socket.io-client`
+- [x] Added `CORS_ORIGIN` env variable with production wildcard restriction (`*` allowed in development only)
+- [x] Created `src/store/commentStore.js` with cursor-based pagination and strict allow-list serialization (never exposing emails or password hashes)
+- [x] Created `src/services/commentService.js` without Express/Socket.io dependencies, reusing `accessService.resolveAccess`
+- [x] Implemented `GET /api/content/:id/comments` chat history endpoint with cursor pagination and paywall gating
+- [x] Attached Socket.io server to Express HTTP server on the same port (`PORT=5000`)
+- [x] Handshake auth middleware (`src/realtime/auth.js`) supporting anonymous connections and validating JWT tokens against DB
+- [x] Private user rooms (`user:{id}`) joined at handshake for cross-tab messaging
+- [x] Mid-session token expiration detection on `comment:create`
+- [x] Distinct viewer presence tracking (`src/realtime/presence.js`) counting unique viewers across multiple tabs
+- [x] Sliding-window anti-spam rate limiter (`src/realtime/rateLimiter.js`) enforcing max 5 comments per 10s per socket
+- [x] Thin socket event handlers (`post:join`, `post:leave`, `comment:create`) with uniform ack shape
+- [x] Safe non-blocking events facade (`src/realtime/events.js`) catching errors so REST endpoints never fail
+- [x] Wired facade notifications into `src/controllers/subscriptions.controller.js` and `src/controllers/content.controller.js`
+- [x] Live access revocation: subscription cancellation, downgrade, and post tier updates revoke open room sockets in real time
+- [x] Post deletion broadcasts `post:deleted` and evicts all sockets from the room
+- [x] Interactive dev test page (`public/dev-chat.html`) served at `/dev/chat` in development mode
+- [x] Automated end-to-end test suite `scripts/verify-realtime.js` passing 65/65 checks
+- [x] Regression testing: `scripts/verify-paywall.js` still passes 56/56 checks
+- [x] Clean graceful shutdown closing Socket.io connections, then HTTP server, then DB pool
+- [x] Full documentation: `docs/REALTIME.md`, `README.md`, `requests.http`, `docs/PR-v0.4.md`
+
+#### Notes & Decisions (v0.4):
+- **Distinct Presence Counting**: Presence tracks `Map<contentId, Map<viewerKey, Set<socketId>>>` in memory. An authenticated user opening multiple browser tabs counts as a single viewer and only decrements when their final tab leaves.
+- **Single Write Path**: Comment writes occur strictly over Socket.io (`comment:create`). REST only exposes read access via `GET /api/content/:id/comments`.
+- **Zero Leakage**: Sockets and REST endpoints serialize comments using a strict allow-list: `{ id, contentId, body, createdAt, user: { id, name, role } }`.
+- **Safe Facade**: REST controllers never import Socket.io directly; all realtime notifications pass through `src/realtime/events.js` and cannot crash HTTP requests.
+
+
