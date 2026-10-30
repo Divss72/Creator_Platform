@@ -18,7 +18,8 @@ const envSchema = z.object({
     .enum(['true', 'false'])
     .optional()
     .default('false')
-    .transform((val) => val === 'true')
+    .transform((val) => val === 'true'),
+  CORS_ORIGIN: z.string().default('*')
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -26,6 +27,15 @@ const parsedEnv = envSchema.safeParse(process.env);
 if (!parsedEnv.success) {
   console.error('Invalid environment variables:', parsedEnv.error.format());
   process.exit(1);
+}
+
+// Reject wildcard CORS origin in production
+if (parsedEnv.data.NODE_ENV === 'production') {
+  const origins = parsedEnv.data.CORS_ORIGIN.split(',').map((o) => o.trim());
+  if (origins.includes('*')) {
+    console.error('[Fatal Error] CORS_ORIGIN cannot contain wildcard ("*") in production mode.');
+    process.exit(1);
+  }
 }
 
 module.exports = Object.freeze(parsedEnv.data);
