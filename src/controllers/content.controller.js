@@ -1,6 +1,7 @@
 const { contentStore } = require('../store');
 const accessService = require('../services/accessService');
 const ApiError = require('../utils/apiError');
+const realtimeEvents = require('../realtime/events');
 
 // TODO(v0.6): Strip HTML after rich-text sanitisation arrives
 const generateExcerpt = (text, maxLength = 200) => {
@@ -144,6 +145,13 @@ const updateContent = async (req, res) => {
     viewerTier: 'vip'
   });
 
+  // Notify realtime layer to revalidate sockets if minTier changed
+  try {
+    await realtimeEvents.onContentUpdated({ contentId: id });
+  } catch (err) {
+    console.error('[Content Controller] Realtime notification error:', err.message);
+  }
+
   res.status(200).json({
     content: formatted
   });
@@ -166,6 +174,13 @@ const deleteContent = async (req, res) => {
   }
 
   await contentStore.delete(id);
+
+  // Notify realtime layer to emit post:deleted and clear room
+  try {
+    await realtimeEvents.onContentDeleted({ contentId: id });
+  } catch (err) {
+    console.error('[Content Controller] Realtime notification error:', err.message);
+  }
 
   res.status(200).json({
     message: 'Content deleted successfully'

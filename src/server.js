@@ -1,6 +1,8 @@
+const http = require('http');
 const app = require('./app');
 const env = require('./config/env');
 const { sequelize } = require('./models');
+const { initRealtime, closeRealtime } = require('./realtime');
 
 async function startServer() {
   try {
@@ -19,13 +21,23 @@ async function startServer() {
     process.exit(1);
   }
 
-  const server = app.listen(env.PORT, () => {
+  const server = http.createServer(app);
+  initRealtime(server);
+
+  server.listen(env.PORT, () => {
     console.log(`[CreatorHub] API server listening on port ${env.PORT} in ${env.NODE_ENV} mode`);
   });
 
-  // Graceful shutdown
+  // Graceful shutdown: close Socket.io, then HTTP server, then DB connection
   const shutdown = async (signal) => {
     console.log(`[CreatorHub] Received ${signal}. Shutting down gracefully...`);
+    try {
+      await closeRealtime();
+      console.log('[CreatorHub] Socket.io connections closed.');
+    } catch (err) {
+      console.error('[CreatorHub] Error closing Socket.io:', err.message);
+    }
+
     server.close(async () => {
       try {
         await sequelize.close();

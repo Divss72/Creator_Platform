@@ -27,6 +27,15 @@ app.get('/health', async (req, res) => {
   });
 });
 
+// Dev-only test page: served at /dev/chat ONLY when NODE_ENV=development
+const path = require('path');
+const env = require('./config/env');
+if (env.NODE_ENV === 'development') {
+  app.get('/dev/chat', (req, res) => {
+    res.sendFile(path.resolve(__dirname, '..', 'public', 'dev-chat.html'));
+  });
+}
+
 // API Routes
 app.use('/api', apiRoutes);
 

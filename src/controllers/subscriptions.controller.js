@@ -1,6 +1,7 @@
 const { userStore, subscriptionStore, tierStore } = require('../store');
 const mockPaymentService = require('../services/mockPaymentService');
 const ApiError = require('../utils/apiError');
+const realtimeEvents = require('../realtime/events');
 
 /**
  * Subscribe, upgrade, downgrade, or reactivate subscription (Subscriber only)
@@ -40,6 +41,16 @@ const subscribe = async (req, res) => {
     tierName: tier
   });
 
+  // Notify realtime layer to revalidate active socket rooms for this creator
+  try {
+    await realtimeEvents.onSubscriptionChanged({
+      userId: req.user.id,
+      creatorId
+    });
+  } catch (err) {
+    console.error('[Subscriptions Controller] Realtime notification error:', err.message);
+  }
+
   res.status(result.statusCode).json({
     subscription: result.subscription
   });
@@ -69,6 +80,16 @@ const cancelSubscription = async (req, res) => {
 
   if (!cancelled) {
     throw ApiError.notFound('No subscription found for this creator');
+  }
+
+  // Notify realtime layer to revalidate active socket rooms for this creator
+  try {
+    await realtimeEvents.onSubscriptionChanged({
+      userId: req.user.id,
+      creatorId
+    });
+  } catch (err) {
+    console.error('[Subscriptions Controller] Realtime notification error:', err.message);
   }
 
   res.status(200).json({
