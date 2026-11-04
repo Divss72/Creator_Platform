@@ -19,7 +19,7 @@
 const { spawn } = require('child_process');
 const jwt = require('jsonwebtoken');
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:5000';
+const BASE_URL = process.env.TEST_BASE_URL || process.env.BASE_URL || 'http://localhost:5000';
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-jwt-key-change-in-production-min32chars';
 
 let totalChecks = 0;
@@ -407,10 +407,11 @@ async function runVerification() {
   // --- 10. Query Efficiency & DataLoader Batching ---
   console.log('\n--- 10. Testing Query Efficiency (Constant SQL Queries) ---');
   const feedCount5Res = await executeGraphQL(`query { feed(first: 5) { edges { node { id creator { displayName } viewerTier commentCount } } } }`);
-  const count5 = feedCount5Res.body.extensions.queryCount;
+  const count5 = feedCount5Res.body?.extensions?.queryCount;
 
   const feedCount50Res = await executeGraphQL(`query { feed(first: 50) { edges { node { id creator { displayName } viewerTier commentCount } } } }`);
-  const count50 = feedCount50Res.body.extensions.queryCount;
+  const count50 = feedCount50Res.body?.extensions?.queryCount;
+  if (count5 === undefined || count50 === undefined) console.error('QueryCount missing:', { feedCount5Res, feedCount50Res });
 
   assert(typeof count5 === 'number' && typeof count50 === 'number', 'extensions.queryCount is present in development mode');
   assert(count5 === count50, `Query count is constant regardless of page size (first: 5 took ${count5} queries, first: 50 took ${count50} queries)`);
@@ -511,7 +512,12 @@ async function runVerification() {
       ...process.env,
       PORT: String(PROD_PORT),
       NODE_ENV: 'production',
-      CORS_ORIGIN: 'http://production.client.local'
+      CORS_ORIGIN: 'http://production.client.local',
+      STORAGE_DRIVER: 'cloudinary',
+      CLOUDINARY_CLOUD_NAME: 'test_cloud',
+      CLOUDINARY_API_KEY: 'test_key',
+      CLOUDINARY_API_SECRET: 'test_secret',
+      JWT_SECRET: 'production-secret-must-be-unique-and-not-default-32chars!'
     },
     stdio: 'pipe'
   });
