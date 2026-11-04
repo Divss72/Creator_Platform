@@ -1,3 +1,5 @@
+'use strict';
+
 const { Router } = require('express');
 const subscriptionsController = require('../controllers/subscriptions.controller');
 const requireAuth = require('../middleware/requireAuth');
@@ -8,6 +10,7 @@ const {
   creatorIdParamSchema
 } = require('../validators/subscriptions.validator');
 const asyncHandler = require('../utils/asyncHandler');
+const { userWritesLimiter } = require('../middleware/rateLimiters');
 
 const router = Router();
 
@@ -18,9 +21,9 @@ router.use(requireAuth, requireRole('subscriber'));
 router.get('/me', asyncHandler(subscriptionsController.getMySubscriptions));
 
 // Subscribe / upgrade / downgrade / reactivate
-router.post('/', validate(subscribeSchema), asyncHandler(subscriptionsController.subscribe));
+router.post('/', userWritesLimiter, validate(subscribeSchema), asyncHandler(subscriptionsController.subscribe));
 
 // Cancel subscription to a specific creator
-router.delete('/:creatorId', validate(creatorIdParamSchema), asyncHandler(subscriptionsController.cancelSubscription));
+router.delete('/:creatorId', userWritesLimiter, validate(creatorIdParamSchema), asyncHandler(subscriptionsController.cancelSubscription));
 
 module.exports = router;
