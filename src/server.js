@@ -3,6 +3,7 @@ const app = require('./app');
 const env = require('./config/env');
 const { sequelize } = require('./models');
 const { initRealtime, closeRealtime } = require('./realtime');
+const { attachGraphQL } = require('./graphql');
 
 async function startServer() {
   try {
@@ -24,11 +25,15 @@ async function startServer() {
   const server = http.createServer(app);
   initRealtime(server);
 
+  // Attach Apollo GraphQL server to app's dedicated graphqlRouter
+  const apolloServer = await attachGraphQL(app.graphqlRouter, server);
+
   server.listen(env.PORT, () => {
     console.log(`[CreatorHub] API server listening on port ${env.PORT} in ${env.NODE_ENV} mode`);
+    console.log(`[CreatorHub] GraphQL endpoint available at POST http://localhost:${env.PORT}/graphql`);
   });
 
-  // Graceful shutdown: close Socket.io, then HTTP server, then DB connection
+  // Graceful shutdown order: Socket.io, then Apollo (server.stop()), then HTTP server, then DB connection
   const shutdown = async (signal) => {
     console.log(`[CreatorHub] Received ${signal}. Shutting down gracefully...`);
     try {
@@ -36,6 +41,13 @@ async function startServer() {
       console.log('[CreatorHub] Socket.io connections closed.');
     } catch (err) {
       console.error('[CreatorHub] Error closing Socket.io:', err.message);
+    }
+
+    try {
+      await apolloServer.stop();
+      console.log('[CreatorHub] Apollo Server stopped.');
+    } catch (err) {
+      console.error('[CreatorHub] Error stopping Apollo Server:', err.message);
     }
 
     server.close(async () => {

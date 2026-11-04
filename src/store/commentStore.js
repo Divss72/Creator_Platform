@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Comment, User } = require('../models');
+const { sequelize, Comment, User } = require('../models');
 
 /**
  * Strict allow-list serialization for comment objects.
@@ -59,6 +59,43 @@ const findById = async (id) => {
   });
 
   return formatComment(comment);
+};
+
+/**
+ * Bulk count comments by content IDs (for DataLoader batching).
+ * @param {string[]} contentIds
+ * @returns {Promise<Map<string, number>>}
+ */
+const countByContentIds = async (contentIds) => {
+  const map = new Map();
+  if (!contentIds || contentIds.length === 0) return map;
+
+  const uniqueIds = [...new Set(contentIds.filter(Boolean))];
+  if (uniqueIds.length === 0) return map;
+
+  const counts = await Comment.findAll({
+    attributes: [
+      'contentId',
+      [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+    ],
+    where: {
+      contentId: { [Op.in]: uniqueIds }
+    },
+    group: ['contentId'],
+    raw: true
+  });
+
+  for (const row of counts) {
+    map.set(row.contentId, parseInt(row.count, 10) || 0);
+  }
+
+  for (const id of uniqueIds) {
+    if (!map.has(id)) {
+      map.set(id, 0);
+    }
+  }
+
+  return map;
 };
 
 /**
@@ -135,6 +172,7 @@ const listByContentWithCursor = async ({ contentId, limit = 50, before = null })
 module.exports = {
   create,
   findById,
+  countByContentIds,
   listByContentWithCursor,
   formatComment
 };

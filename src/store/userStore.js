@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const { sequelize, User, CreatorProfile } = require('../models');
 
 const sanitize = (user) => {
@@ -99,6 +100,61 @@ const userStore = {
     });
 
     return formatUser(user);
+  },
+
+  /**
+   * Bulk find creators by IDs for DataLoader batching.
+   * Only returns users with role 'creator'.
+   * Strictly omits private fields (email, passwordHash).
+   * @param {string[]} ids
+   * @returns {Promise<Map<string, { id: string, displayName: string, bio: string }>>}
+   */
+  async findCreatorsByIds(ids) {
+    const map = new Map();
+    if (!ids || ids.length === 0) return map;
+
+    const uniqueIds = [...new Set(ids.filter(Boolean))];
+    if (uniqueIds.length === 0) return map;
+
+    const users = await User.findAll({
+      where: {
+        id: { [Op.in]: uniqueIds },
+        role: 'creator'
+      },
+      include: [{ model: CreatorProfile, as: 'profile' }]
+    });
+
+    for (const u of users) {
+      const plain = u.get({ plain: true });
+      map.set(plain.id, {
+        id: plain.id,
+        displayName: plain.profile ? plain.profile.displayName : plain.name,
+        bio: plain.profile ? plain.profile.bio : null
+      });
+    }
+
+    return map;
+  },
+
+  /**
+   * Find a single creator by ID (returns null if not found or not a creator).
+   * Strictly omits private fields (email, passwordHash).
+   * @param {string} id
+   * @returns {Promise<{ id: string, displayName: string, bio: string }|null>}
+   */
+  async findCreatorById(id) {
+    if (!id) return null;
+    const user = await User.findOne({
+      where: { id, role: 'creator' },
+      include: [{ model: CreatorProfile, as: 'profile' }]
+    });
+    if (!user) return null;
+    const plain = user.get({ plain: true });
+    return {
+      id: plain.id,
+      displayName: plain.profile ? plain.profile.displayName : plain.name,
+      bio: plain.profile ? plain.profile.bio : null
+    };
   },
 
   /**

@@ -14,10 +14,12 @@
     "db:reset": "npm run db:drop && npm run db:create && npm run db:migrate && npm run db:seed",
     "verify:paywall": "node scripts/verify-paywall.js",
     "verify:associations": "node scripts/verify-associations.js",
-    "verify:realtime": "node scripts/verify-realtime.js"
+    "verify:realtime": "node scripts/verify-realtime.js",
+    "verify:graphql": "node scripts/verify-graphql.js"
   },
   "dependencies": {
     "@apollo/server": "^5.5.1",
+    "@as-integrations/express4": "^1.1.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dataloader": "^2.2.3",

@@ -36,6 +36,11 @@ if (env.NODE_ENV === 'development') {
   });
 }
 
+// Dedicated router for GraphQL mounted before 404 handler
+const graphqlRouter = express.Router();
+app.use('/graphql', graphqlRouter);
+app.graphqlRouter = graphqlRouter;
+
 // API Routes
 app.use('/api', apiRoutes);
 

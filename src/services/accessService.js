@@ -15,6 +15,85 @@ const canAccess = (viewerRank, requiredRank) => {
 };
 
 /**
+ * Build a viewer's access profile in a single query.
+ * Memoised per-request in GraphQL context.
+ *
+ * @param {Object} params
+ * @param {string|null} params.viewerId
+ * @returns {Promise<{ viewerId: string|null, defaultRank: number, rankByCreatorId: Map<string, number> }>}
+ */
+const getViewerAccessProfile = async ({ viewerId }) => {
+  const freeTier = (await tierStore.getByName('free')) || { name: 'free', rank: 0 };
+  const defaultRank = freeTier.rank;
+  const rankByCreatorId = new Map();
+
+  if (!viewerId) {
+    return {
+      viewerId: null,
+      defaultRank,
+      rankByCreatorId
+    };
+  }
+
+  // Active, non-expired subscriptions in a single query
+  const subscriptions = await subscriptionStore.findActiveBySubscriber(viewerId);
+  for (const sub of subscriptions) {
+    rankByCreatorId.set(sub.creatorId, sub.tierRank);
+  }
+
+  return {
+    viewerId,
+    defaultRank,
+    rankByCreatorId
+  };
+};
+
+/**
+ * Resolve access using a pre-fetched viewer access profile in memory (no extra DB query).
+ *
+ * @param {Object} params
+ * @param {Object} params.profile - Pre-fetched profile from getViewerAccessProfile
+ * @param {Object} params.content - Content item object
+ * @param {Map<string, number>} [params.tierRankMap] - Optional memoized map of tier name -> rank
+ * @returns {Promise<{ hasAccess: boolean, viewerTier: string, requiredTier: string }>}
+ */
+const resolveAccessFromProfile = async ({ profile, content, tierRankMap }) => {
+  let rankMap = tierRankMap;
+  if (!rankMap) {
+    const allTiers = await tierStore.findAll();
+    rankMap = new Map(allTiers.map((t) => [t.name, t.rank]));
+  }
+  const vipRank = rankMap.get('vip') ?? 2;
+
+  let viewerRank = profile ? profile.defaultRank : 0;
+  let viewerTier = 'free';
+
+  if (profile && profile.viewerId && profile.viewerId === content.creatorId) {
+    // Owner rule: full access (VIP)
+    viewerTier = 'vip';
+    viewerRank = vipRank;
+  } else if (profile && profile.viewerId && profile.rankByCreatorId.has(content.creatorId)) {
+    viewerRank = profile.rankByCreatorId.get(content.creatorId);
+    for (const [name, rank] of rankMap.entries()) {
+      if (rank === viewerRank) {
+        viewerTier = name;
+        break;
+      }
+    }
+  }
+
+  const requiredTierName = content.minTier || 'free';
+  const requiredRank = rankMap.get(requiredTierName) ?? 0;
+  const hasAccess = canAccess(viewerRank, requiredRank);
+
+  return {
+    hasAccess,
+    viewerTier,
+    requiredTier: requiredTierName
+  };
+};
+
+/**
  * Resolve the effective tier of a viewer for a specific creator.
  * Rules:
  * 1. Owner: viewer IS the creator -> full access (rank 2, source: 'owner')
@@ -144,6 +223,8 @@ const resolveAccessBulk = async ({ viewer, contents }) => {
 
 module.exports = {
   canAccess,
+  getViewerAccessProfile,
+  resolveAccessFromProfile,
   resolveViewerTier,
   resolveAccess,
   resolveAccessBulk
