@@ -279,7 +279,7 @@ async function runVerification() {
 
   // 13. Bulk feed query efficiency (no N+1)
   console.log('\n--- 13. Testing Bulk Feed Query Efficiency ---');
-  const feed = await api('/api/content?page=1&limit=10', {
+  const feed = await api('/api/content?page=1&limit=50', {
     headers: { Authorization: `Bearer ${subBToken}` }
   });
   assert(feed.status === 200, 'GET /api/content feed returns 200');
