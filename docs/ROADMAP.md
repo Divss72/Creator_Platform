@@ -4,10 +4,10 @@ A subscription platform where creators publish tiered content (Free / Pro / VIP)
 
 | Version | Focus | Description | Status |
 | :--- | :--- | :--- | :--- |
-| **v0.1** | **Skeleton + auth** | Express server, register/login, JWT, roles, profiles, content CRUD (in-memory store) | **In Progress** |
-| **v0.2** | **MySQL + Sequelize** | Schema, associations, move CRUD to database, seed script | Upcoming |
-| **v0.3** | **Subscriptions + paywall** | Mock subscribe, tier ranking (Free < Pro < VIP), `requireTier` middleware, preview vs full content | Upcoming |
-| **v0.4** | **Socket.io** | Live comments per post, viewer count, JWT-authenticated sockets, tier-gated rooms | Upcoming |
+| **v0.1** | **Skeleton + auth** | Express server, register/login, JWT, roles, profiles, content CRUD (in-memory store) | **Completed** |
+| **v0.2** | **MySQL + Sequelize** | Schema, associations, move CRUD to database, seed script | **Completed** |
+| **v0.3** | **Subscriptions + paywall** | Mock subscribe, tier ranking (Free < Pro < VIP), `requireTier` middleware, preview vs full content | **Completed** |
+| **v0.4** | **Socket.io** | Live comments per post, viewer count, JWT-authenticated sockets, tier-gated rooms | **Completed** |
 | **v0.5** | **GraphQL** | Content feed filtered by tier and creator | Upcoming |
 | **v0.6** | **Media + security** | Cloudinary uploads, rich-text XSS sanitisation, helmet, rate limiting | Upcoming |
 | **v0.7** | **Email + Firebase** | Welcome / new-post / weekly digest emails, live subscriber count | Upcoming |
