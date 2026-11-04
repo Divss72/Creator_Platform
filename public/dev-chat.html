@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CreatorHub Dev Live Chat</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 20px; background: #f8fafc; color: #1e293b; }
+    h1 { font-size: 1.4rem; margin-bottom: 12px; }
+    .card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+    input[type="text"], textarea { flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 14px; }
+    button { padding: 8px 14px; border: none; border-radius: 4px; background: #2563eb; color: white; cursor: pointer; font-size: 13px; font-weight: 500; }
+    button:disabled { background: #94a3b8; cursor: not-allowed; }
+    button.secondary { background: #64748b; }
+    button.danger { background: #dc2626; }
+    .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    .status-online { background: #dcfce7; color: #166534; }
+    .status-offline { background: #fee2e2; color: #991b1b; }
+    #chatBox { height: 260px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; padding: 10px; background: #fdfdfd; margin-bottom: 10px; }
+    .comment-item { margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+    .comment-meta { font-weight: 600; color: #475569; margin-bottom: 2px; }
+    .comment-body { color: #0f172a; word-break: break-word; }
+    #eventLog { height: 160px; overflow-y: auto; background: #0f172a; color: #38bdf8; font-family: monospace; font-size: 12px; padding: 10px; border-radius: 4px; }
+    .log-line { margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <h1>CreatorHub Realtime Dev Chat (/dev/chat)</h1>
+
+  <!-- 1. Connection Section -->
+  <div class="card">
+    <h3>1. Handshake & Authentication</h3>
+    <div class="row">
+      <input type="text" id="tokenInput" placeholder="JWT Token (leave empty for Anonymous connection)">
+      <button id="btnConnect" onclick="connectSocket()">Connect</button>
+      <button id="btnDisconnect" class="secondary" onclick="disconnectSocket()" disabled>Disconnect</button>
+      <span id="connectionStatus" class="status-badge status-offline">Disconnected</span>
+    </div>
+  </div>
+
+  <!-- 2. Room & Post Controls -->
+  <div class="card">
+    <h3>2. Post Chat Room</h3>
+    <div class="row">
+      <input type="text" id="contentIdInput" placeholder="Content ID (e.g. c1111111-1111-4111-8111-111111111111)">
+      <button id="btnFetchHistory" onclick="fetchChatHistory()">Get History</button>
+      <button id="btnJoinRoom" onclick="joinPostRoom()" disabled>Join Room</button>
+      <button id="btnLeaveRoom" class="secondary" onclick="leavePostRoom()" disabled>Leave Room</button>
+      <span>Viewers: <strong id="viewerCountDisplay">0</strong></span>
+      <span>Can Comment: <strong id="canCommentDisplay">No</strong></span>
+    </div>
+  </div>
+
+  <!-- 3. Comments Section -->
+  <div class="card">
+    <h3>3. Chat Feed</h3>
+    <div id="chatBox"></div>
+    <div class="row">
+      <textarea id="commentBodyInput" rows="2" placeholder="Write a comment... (1 to 1000 characters)" disabled></textarea>
+      <button id="btnSendComment" onclick="sendComment()" disabled>Send</button>
+    </div>
+  </div>
+
+  <!-- 4. Realtime Server Event Log -->
+  <div class="card">
+    <h3>4. Realtime Event Log</h3>
+    <div id="eventLog"></div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    let socket = null;
+    let currentJoinedRoom = null;
+    const seenCommentIds = new Set();
+
+    function logEvent(title, data) {
+      const log = document.getElementById('eventLog');
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = 'log-line';
+      div.textContent = `[${time}] ${title} ${data ? JSON.stringify(data) : ''}`;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function updateUIState() {
+      const isConnected = socket && socket.connected;
+      const inRoom = Boolean(currentJoinedRoom);
+
+      document.getElementById('btnConnect').disabled = isConnected;
+      document.getElementById('btnDisconnect').disabled = !isConnected;
+      document.getElementById('tokenInput').disabled = isConnected;
+
+      document.getElementById('btnJoinRoom').disabled = !isConnected || inRoom;
+      document.getElementById('btnLeaveRoom').disabled = !isConnected || !inRoom;
+
+      const canComment = inRoom && document.getElementById('canCommentDisplay').textContent === 'Yes';
+      document.getElementById('commentBodyInput').disabled = !canComment;
+      document.getElementById('btnSendComment').disabled = !canComment;
+
+      const statusEl = document.getElementById('connectionStatus');
+      if (isConnected) {
+        statusEl.className = 'status-badge status-online';
+        statusEl.textContent = socket.auth && socket.auth.token ? 'Connected (Auth)' : 'Connected (Anonymous)';
+      } else {
+        statusEl.className = 'status-badge status-offline';
+        statusEl.textContent = 'Disconnected';
+      }
+    }
+
+    function connectSocket() {
+      if (socket) socket.disconnect();
+
+      const token = document.getElementById('tokenInput').value.trim();
+      const auth = token ? { token } : {};
+
+      logEvent('CONNECTING', auth.token ? 'with token' : 'anonymously');
+
+      socket = io('/', { auth });
+
+      socket.on('connect', () => {
+        logEvent('CONNECTED', { socketId: socket.id });
+        updateUIState();
+      });
+
+      socket.on('connect_error', (err) => {
+        logEvent('CONNECT_ERROR', { message: err.message });
+        updateUIState();
+      });
+
+      socket.on('disconnect', (reason) => {
+        logEvent('DISCONNECTED', { reason });
+        currentJoinedRoom = null;
+        document.getElementById('viewerCountDisplay').textContent = '0';
+        document.getElementById('canCommentDisplay').textContent = 'No';
+        updateUIState();
+      });
+
+      socket.on('viewers:update', (data) => {
+        logEvent('viewers:update', data);
+        if (currentJoinedRoom === data.contentId) {
+          document.getElementById('viewerCountDisplay').textContent = data.count;
+        }
+      });
+
+      socket.on('comment:new', (comment) => {
+        logEvent('comment:new', comment);
+        renderComment(comment, false);
+      });
+
+      socket.on('access:revoked', (data) => {
+        logEvent('access:revoked', data);
+        if (currentJoinedRoom === data.contentId) {
+          currentJoinedRoom = null;
+          document.getElementById('canCommentDisplay').textContent = 'No';
+          updateUIState();
+          alert(`Access revoked for post ${data.contentId}: ${data.reason}`);
+        }
+      });
+
+      socket.on('post:deleted', (data) => {
+        logEvent('post:deleted', data);
+        if (currentJoinedRoom === data.contentId) {
+          currentJoinedRoom = null;
+          document.getElementById('canCommentDisplay').textContent = 'No';
+          updateUIState();
+          alert(`Post ${data.contentId} was deleted.`);
+        }
+      });
+    }
+
+    function disconnectSocket() {
+      if (socket) {
+        socket.disconnect();
+      }
+    }
+
+    function renderComment(c, prepend = false) {
+      if (seenCommentIds.has(c.id)) return;
+      seenCommentIds.add(c.id);
+
+      const box = document.getElementById('chatBox');
+      const div = document.createElement('div');
+      div.className = 'comment-item';
+      div.id = `comment-${c.id}`;
+
+      const meta = document.createElement('div');
+      meta.className = 'comment-meta';
+      const author = c.user ? `${c.user.name} (${c.user.role})` : 'Unknown';
+      const time = new Date(c.createdAt).toLocaleTimeString();
+      meta.textContent = `${author} · ${time}`;
+
+      const body = document.createElement('div');
+      body.className = 'comment-body';
+      body.textContent = c.body; // Render strictly as plain text
+
+      div.appendChild(meta);
+      div.appendChild(body);
+
+      if (prepend && box.firstChild) {
+        box.insertBefore(div, box.firstChild);
+      } else {
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+      }
+    }
+
+    async function fetchChatHistory() {
+      const contentId = document.getElementById('contentIdInput').value.trim();
+      if (!contentId) return alert('Enter a Content ID');
+
+      const token = document.getElementById('tokenInput').value.trim();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      try {
+        const res = await fetch(`/api/content/${contentId}/comments?limit=50`, { headers });
+        const data = await res.json();
+
+        if (!res.ok) {
+          logEvent('HISTORY_ERROR', data);
+          return alert(`History error (${res.status}): ${JSON.stringify(data.error)}`);
+        }
+
+        logEvent('HISTORY_FETCHED', { count: data.items.length, nextBefore: data.nextBefore });
+        document.getElementById('chatBox').innerHTML = '';
+        seenCommentIds.clear();
+
+        data.items.forEach(c => renderComment(c));
+      } catch (err) {
+        logEvent('FETCH_EXCEPTION', { error: err.message });
+      }
+    }
+
+    function joinPostRoom() {
+      const contentId = document.getElementById('contentIdInput').value.trim();
+      if (!contentId) return alert('Enter a Content ID');
+
+      logEvent('EMIT post:join', { contentId });
+      socket.emit('post:join', { contentId }, (ack) => {
+        logEvent('ACK post:join', ack);
+        if (ack.ok) {
+          currentJoinedRoom = contentId;
+          document.getElementById('viewerCountDisplay').textContent = ack.data.viewerCount;
+          document.getElementById('canCommentDisplay').textContent = ack.data.canComment ? 'Yes' : 'No';
+          updateUIState();
+        } else {
+          alert(`Join failed: [${ack.error.code}] ${ack.error.message}`);
+        }
+      });
+    }
+
+    function leavePostRoom() {
+      if (!currentJoinedRoom) return;
+
+      const contentId = currentJoinedRoom;
+      logEvent('EMIT post:leave', { contentId });
+      socket.emit('post:leave', { contentId }, (ack) => {
+        logEvent('ACK post:leave', ack);
+        currentJoinedRoom = null;
+        document.getElementById('viewerCountDisplay').textContent = '0';
+        document.getElementById('canCommentDisplay').textContent = 'No';
+        updateUIState();
+      });
+    }
+
+    function sendComment() {
+      if (!currentJoinedRoom) return alert('Must join room first');
+      const bodyInput = document.getElementById('commentBodyInput');
+      const body = bodyInput.value;
+      if (!body.trim()) return alert('Comment cannot be empty');
+
+      logEvent('EMIT comment:create', { contentId: currentJoinedRoom, bodyLength: body.length });
+      socket.emit('comment:create', { contentId: currentJoinedRoom, body }, (ack) => {
+        logEvent('ACK comment:create', ack);
+        if (ack.ok) {
+          bodyInput.value = '';
+        } else {
+          alert(`Comment failed: [${ack.error.code}] ${ack.error.message}`);
+        }
+      });
+    }
+  </script>
+</body>
+</html>

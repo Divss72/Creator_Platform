@@ -1,0 +1,94 @@
+# CreatorHub GraphQL Schema - Version 0.5 (v0.5)
+# Single source of truth for the GraphQL read-only API
+
+scalar DateTime
+
+enum TierName {
+  FREE
+  PRO
+  VIP
+}
+
+enum Role {
+  CREATOR
+  SUBSCRIBER
+}
+
+type Tier {
+  name: TierName!
+  rank: Int!
+  priceCents: Int!
+}
+
+type Creator {
+  id: ID!
+  displayName: String!
+  bio: String
+}
+
+type ContentItem {
+  id: ID!
+  title: String!
+  minTier: TierName!
+  creator: Creator!
+  locked: Boolean!
+  body: String
+  excerpt: String!
+  viewerTier: TierName!
+  commentCount: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  endCursor: String
+}
+
+type ContentEdge {
+  cursor: String!
+  node: ContentItem!
+}
+
+type ContentConnection {
+  edges: [ContentEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+input FeedFilter {
+  creatorId: ID
+  minTiers: [TierName!]
+  accessibleOnly: Boolean
+  subscribedOnly: Boolean
+}
+
+type CommentAuthor {
+  id: ID!
+  name: String!
+  role: Role!
+}
+
+type Comment {
+  id: ID!
+  contentId: ID!
+  body: String!
+  createdAt: DateTime!
+  user: CommentAuthor!
+}
+
+type CommentPage {
+  items: [Comment!]!
+  nextBefore: ID
+}
+
+type Query {
+  tiers: [Tier!]!
+  feed(filter: FeedFilter, first: Int = 20, after: String): ContentConnection!
+  content(id: ID!): ContentItem
+  creator(id: ID!): Creator
+  contentComments(contentId: ID!, limit: Int = 50, before: ID): CommentPage!
+}
+
+# TODO(future): Mutations (writes currently handled via REST: register, login, create content, subscribe)
+# TODO(future): Subscriptions (live chat comments and presence currently handled via Socket.io)

@@ -5,18 +5,37 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "db:create": "node scripts/db-create.js",
+    "db:drop": "node scripts/db-drop.js",
+    "db:migrate": "npx sequelize-cli db:migrate",
+    "db:migrate:undo": "npx sequelize-cli db:migrate:undo:all",
+    "db:seed": "npx sequelize-cli db:seed:all",
+    "db:reset": "npm run db:drop && npm run db:create && npm run db:migrate && npm run db:seed",
+    "verify:paywall": "node scripts/verify-paywall.js",
+    "verify:associations": "node scripts/verify-associations.js",
+    "verify:realtime": "node scripts/verify-realtime.js",
+    "verify:graphql": "node scripts/verify-graphql.js"
   },
   "dependencies": {
+    "@apollo/server": "^5.5.1",
+    "@as-integrations/express4": "^1.1.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "dataloader": "^2.2.3",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "graphql": "^16.14.2",
     "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.24.6",
+    "sequelize": "^6.37.8",
+    "socket.io": "^4.8.4",
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "nodemon": "^3.1.9"
+    "nodemon": "^3.1.9",
+    "sequelize-cli": "^6.6.5",
+    "socket.io-client": "^4.8.4"
   },
   "engines": {
     "node": ">=20.0.0"
