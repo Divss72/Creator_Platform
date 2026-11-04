@@ -1,12 +1,15 @@
+'use strict';
+
 const { ZodError } = require('zod');
 const {
   UniqueConstraintError,
   ValidationError,
   BaseError: SequelizeBaseError
 } = require('sequelize');
+const multer = require('multer');
 const ApiError = require('../utils/apiError');
 
-// Central error handler formatting all responses as { error: { code, message } }
+// Central error handler formatting all responses as { error: { code, message, details? } }
 const errorHandler = (err, req, res, next) => {
   if (err instanceof ApiError) {
     const errorBody = {
@@ -28,6 +31,44 @@ const errorHandler = (err, req, res, next) => {
       error: {
         code: 'VALIDATION_ERROR',
         message
+      }
+    });
+  }
+
+  // Multer upload errors
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({
+        error: {
+          code: 'PAYLOAD_TOO_LARGE',
+          message: 'Uploaded file exceeds the maximum allowed size'
+        }
+      });
+    }
+    return res.status(400).json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: err.message || 'File upload validation error'
+      }
+    });
+  }
+
+  // Body parser entity too large (JSON payload limit 100kb exceeded)
+  if (err.type === 'entity.too.large' || err.status === 413) {
+    return res.status(413).json({
+      error: {
+        code: 'PAYLOAD_TOO_LARGE',
+        message: 'Request payload exceeds the maximum allowed size of 100kb'
+      }
+    });
+  }
+
+  // Malformed JSON payload
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Malformed JSON payload'
       }
     });
   }
@@ -60,16 +101,6 @@ const errorHandler = (err, req, res, next) => {
       error: {
         code: 'UNAUTHORIZED',
         message: err.message || 'Invalid or expired authentication token'
-      }
-    });
-  }
-
-  // Malformed JSON payload
-  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    return res.status(400).json({
-      error: {
-        code: 'BAD_REQUEST',
-        message: 'Malformed JSON payload'
       }
     });
   }

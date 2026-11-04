@@ -1,7 +1,10 @@
+'use strict';
+
 const contentStore = require('../store/contentStore');
 const commentStore = require('../store/commentStore');
 const accessService = require('./accessService');
 const ApiError = require('../utils/apiError');
+const { cleanPlainText } = require('./sanitizeService');
 
 /**
  * Service handling comment business logic across REST, Socket.io, and future GraphQL.
@@ -30,13 +33,14 @@ const createComment = async ({ viewer, contentId, body }) => {
     throw ApiError.validation('Valid contentId is required');
   }
 
-  // 3. Validate body (1 to 1000 characters, trimmed, non-whitespace-only)
-  if (typeof body !== 'string') {
-    throw ApiError.validation('Comment body must be a string');
-  }
+  // 3. Clean and validate plain-text body (1 to 1000 characters, preserves newlines, rejects HTML tags)
+  const cleanedBody = cleanPlainText(body, {
+    maxLength: 1000,
+    fieldName: 'Comment body',
+    allowNewlines: true
+  });
 
-  const trimmedBody = body.trim();
-  if (trimmedBody.length < 1 || trimmedBody.length > 1000) {
+  if (cleanedBody.length < 1) {
     throw ApiError.validation('Comment body must be between 1 and 1000 characters');
   }
 
@@ -55,12 +59,11 @@ const createComment = async ({ viewer, contentId, body }) => {
     });
   }
 
-  // TODO(v0.6): sanitisation and moderation. Clients must never render it as HTML.
   // Stored and sent as PLAIN TEXT.
   const comment = await commentStore.create({
     contentId,
     userId: viewer.id,
-    body: trimmedBody
+    body: cleanedBody
   });
 
   return comment;

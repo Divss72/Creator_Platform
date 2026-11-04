@@ -1,3 +1,5 @@
+'use strict';
+
 class ApiError extends Error {
   constructor(statusCode, code, message, details = null) {
     super(message);
@@ -35,8 +37,28 @@ class ApiError extends Error {
     return new ApiError(409, code, message);
   }
 
-  static rateLimited(message = 'Too many requests, please try again later') {
-    return new ApiError(429, 'RATE_LIMITED', message);
+  static mediaLimit(message = 'Media attachment limit reached (maximum 5 attachments per post)', details = null) {
+    return new ApiError(409, 'MEDIA_LIMIT', message, details);
+  }
+
+  static quotaExceeded(message = 'Storage quota exceeded', details = null) {
+    return new ApiError(403, 'QUOTA_EXCEEDED', message, details);
+  }
+
+  static payloadTooLarge(message = 'Payload too large', details = null) {
+    return new ApiError(413, 'PAYLOAD_TOO_LARGE', message, details);
+  }
+
+  static unsupportedMediaType(message = 'Unsupported media type', details = null) {
+    return new ApiError(415, 'UNSUPPORTED_MEDIA_TYPE', message, details);
+  }
+
+  static uploadFailed(message = 'Upload failed, please try again later', details = null) {
+    return new ApiError(502, 'UPLOAD_FAILED', message, details);
+  }
+
+  static rateLimited(message = 'Too many requests, please try again later', details = null) {
+    return new ApiError(429, 'RATE_LIMITED', message, details);
   }
 
   static internal(message = 'Internal server error', code = 'INTERNAL_ERROR') {
