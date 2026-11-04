@@ -2,35 +2,7 @@ const { contentStore } = require('../store');
 const accessService = require('../services/accessService');
 const ApiError = require('../utils/apiError');
 const realtimeEvents = require('../realtime/events');
-
-// TODO(v0.6): Strip HTML after rich-text sanitisation arrives
-const generateExcerpt = (text, maxLength = 200) => {
-  if (!text) return '';
-  return text.length <= maxLength ? text : text.slice(0, maxLength).trim();
-};
-
-/**
- * Format a content item based on viewer's access permissions.
- * Built from a strict allow-list of fields to guarantee locked items NEVER leak body text.
- */
-const formatContentItem = ({ item, hasAccess, viewerTier }) => {
-  const isLocked = !hasAccess;
-  const excerpt = generateExcerpt(item.body, 200);
-
-  return {
-    id: item.id,
-    creatorId: item.creatorId,
-    title: item.title,
-    body: isLocked ? null : item.body,
-    excerpt,
-    minTier: item.minTier,
-    locked: isLocked,
-    viewerTier,
-    creator: item.creator,
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt
-  };
-};
+const { formatContentItem } = require('../presenters/contentPresenter');
 
 /**
  * Create content (Creator only)

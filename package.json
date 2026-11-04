@@ -17,10 +17,13 @@
     "verify:realtime": "node scripts/verify-realtime.js"
   },
   "dependencies": {
+    "@apollo/server": "^5.5.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "dataloader": "^2.2.3",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "graphql": "^16.14.2",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.24.6",
     "sequelize": "^6.37.8",
