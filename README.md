@@ -1,8 +1,8 @@
-# CreatorHub API (v0.3)
+# CreatorHub API (v0.5)
 
 > **Creator Economy Platform** — A subscription platform where creators publish tiered content (Free / Pro / VIP) and fans subscribe and chat live on each post.
 
-Version 0.3 introduces **Access Tiers, Subscriptions & Content Paywall**, featuring framework-independent access resolution, mock subscription purchases with idempotent upgrades/cancellations, and server-side preview enforcement.
+Version 0.5 introduces a **Read-Only GraphQL API** at `POST /graphql` alongside the REST and Socket.io endpoints, featuring keyset cursor pagination, flexible tier/creator feed filtering, single posts and creator profiles, comment history, zero body leakage guarantees, and development query monitoring.
 
 ---
 
@@ -121,6 +121,7 @@ The effective tier of any viewer requesting content by a specific creator is res
 | `npm run verify:paywall` | Runs comprehensive 56-check paywall and access verification suite |
 | `npm run verify:associations` | Runs bidirectional relation verification script across all models |
 | `npm run verify:realtime` | Runs automated 65-check Socket.io realtime and chat verification suite |
+| `npm run verify:graphql` | Runs comprehensive 69-check GraphQL verification suite |
 
 ---
 
@@ -259,6 +260,88 @@ http://localhost:5000/dev/chat
 4. **Test Real-Time Revocation**:
    - Open a second browser tab, log in as Subscriber C, upgrade to Pro, and join Alice's Pro post room.
    - Cancel the subscription via REST: notice the socket immediately receives `access:revoked` and comment capabilities are disabled.
+
+---
+
+## GraphQL API (v0.5)
+
+Apollo Server is attached to the same Express HTTP server at `POST /graphql`. It provides a read-only schema for feed browsing, single posts, creator profiles, tiers, and comment history.
+
+### Key GraphQL Features:
+- **Keyset Cursor Pagination**: Relay-style `(created_at, id) < cursor` pagination with opaque cursors (`first`, `after`, `pageInfo.hasNextPage`, `pageInfo.endCursor`).
+- **Paywall & Preview Enforcement**: Locked posts set `locked: true`, `body: null`, provide `excerpt`, and report `viewerTier`. The full body **never leaks** (tested across aliases and fragment spreads).
+- **Feed Filtering**: Filter by `creatorId`, `minTiers` (`[FREE, PRO, VIP]`), `accessibleOnly` (posts viewer can read in full), and `subscribedOnly` (posts from subscribed creators, requires auth).
+- **N+1 Batching**: Per-request DataLoaders for `creator` profiles and `commentCount`.
+- **Query Performance & Counting**: In development mode, responses include `extensions.queryCount` measuring total SQL queries executed.
+- **Security & Limits**: Max query depth capped at 6, max `first` capped at 50, max comment `limit` capped at 100. In production (`NODE_ENV=production`), introspection is disabled, debug extensions are omitted, and Apollo Sandbox is not served.
+
+For full query examples, fragment patterns, error shapes, and frontend guidance, see [docs/GRAPHQL.md](docs/GRAPHQL.md).
+
+---
+
+## Try GraphQL (Apollo Sandbox)
+
+When running in development (`NODE_ENV=development`), open your browser to:
+
+```
+http://localhost:5000/graphql
+```
+
+This loads the embedded Apollo Sandbox IDE directly against your local server.
+
+### Example 1: Paginated Feed with Viewer Paywall Status
+```graphql
+query GetFeed($first: Int, $after: String) {
+  feed(first: $first, after: $after) {
+    totalCount
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        title
+        minTier
+        locked
+        viewerTier
+        body
+        excerpt
+        commentCount
+        creator {
+          id
+          displayName
+        }
+      }
+    }
+  }
+}
+```
+
+### Example 2: Filtered Feed (Accessible Posts Only)
+```graphql
+query GetAccessibleFeed {
+  feed(filter: { accessibleOnly: true }, first: 10) {
+    edges {
+      node {
+        id
+        title
+        minTier
+        locked
+        body
+      }
+    }
+  }
+}
+```
+
+To run authenticated queries in Apollo Sandbox, add an HTTP Header at the bottom:
+```json
+{
+  "Authorization": "Bearer <YOUR_JWT_TOKEN>"
+}
+```
 
 ---
 

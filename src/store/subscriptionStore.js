@@ -64,6 +64,27 @@ const subscriptionStore = {
   },
 
   /**
+   * Query all active, non-expired subscriptions for a subscriber in a single query.
+   * @param {string} subscriberId
+   * @returns {Promise<Object[]>}
+   */
+  async findActiveBySubscriber(subscriberId) {
+    if (!subscriberId) return [];
+
+    const now = new Date();
+    const subscriptions = await Subscription.findAll({
+      where: {
+        subscriberId,
+        status: 'active',
+        [Op.or]: [{ endsAt: null }, { endsAt: { [Op.gt]: now } }]
+      },
+      include: [{ model: Tier, as: 'tier' }]
+    });
+
+    return subscriptions.map(formatSubscription);
+  },
+
+  /**
    * Find a single subscription by subscriber and creator
    */
   async findBySubscriberAndCreator(subscriberId, creatorId) {

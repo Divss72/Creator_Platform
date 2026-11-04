@@ -1,10 +1,11 @@
+const { Op } = require('sequelize');
 const { Content, Tier, User, CreatorProfile } = require('../models');
 
 const creatorInclude = {
   model: User,
   as: 'creator',
   attributes: ['id', 'name'],
-  include: [{ model: CreatorProfile, as: 'profile', attributes: ['displayName'] }]
+  include: [{ model: CreatorProfile, as: 'profile', attributes: ['displayName', 'bio'] }]
 };
 
 const formatContent = (contentInstance) => {
@@ -20,7 +21,8 @@ const formatContent = (contentInstance) => {
       ? {
           id: content.creator.id,
           name: content.creator.name,
-          displayName: content.creator.profile ? content.creator.profile.displayName : content.creator.name
+          displayName: content.creator.profile ? content.creator.profile.displayName : content.creator.name,
+          bio: content.creator.profile ? content.creator.profile.bio : null
         }
       : undefined,
     createdAt: content.createdAt,
@@ -28,7 +30,101 @@ const formatContent = (contentInstance) => {
   };
 };
 
+const encodeCursor = (item) => {
+  const dateStr = item.createdAt instanceof Date
+    ? item.createdAt.toISOString()
+    : new Date(item.createdAt).toISOString();
+  return Buffer.from(JSON.stringify({ createdAt: dateStr, id: item.id }), 'utf8').toString('base64');
+};
+
+const decodeCursor = (cursorStr) => {
+  if (!cursorStr || typeof cursorStr !== 'string') return null;
+  try {
+    const jsonStr = Buffer.from(cursorStr, 'base64').toString('utf8');
+    const parsed = JSON.parse(jsonStr);
+    if (!parsed || !parsed.createdAt || !parsed.id || typeof parsed.id !== 'string') {
+      return null;
+    }
+    const createdAt = new Date(parsed.createdAt);
+    if (isNaN(createdAt.getTime())) {
+      return null;
+    }
+    return { createdAt, id: parsed.id };
+  } catch (err) {
+    return null;
+  }
+};
+
+/**
+ * Build Sequelize WHERE conditions for feed filtering based on access profile and user filters.
+ */
+const buildFeedConditions = ({ filter = {}, accessProfile = null }) => {
+  const andConditions = [];
+
+  // 1. Filter by specific creator
+  if (filter.creatorId) {
+    andConditions.push({ creatorId: filter.creatorId });
+  }
+
+  // 2. Filter by specific minimum tiers
+  if (filter.minTiers && filter.minTiers.length > 0) {
+    const lowerTiers = filter.minTiers.map((t) => t.toLowerCase());
+    andConditions.push({ '$minTier.name$': { [Op.in]: lowerTiers } });
+  }
+
+  // 3. Filter by subscribed creators only (requires non-empty subscribed creators list)
+  if (filter.subscribedOnly) {
+    if (!accessProfile || !accessProfile.viewerId) {
+      // Must be handled as UNAUTHENTICATED by caller
+      return { isUnauthenticated: true };
+    }
+    const subscribedCreatorIds = Array.from(accessProfile.rankByCreatorId.keys()).filter(
+      (id) => id !== accessProfile.viewerId
+    );
+
+    if (subscribedCreatorIds.length === 0) {
+      // Viewer has no active subscriptions -> empty connection
+      return { isEmpty: true };
+    }
+    andConditions.push({ creatorId: { [Op.in]: subscribedCreatorIds } });
+  }
+
+  // 4. Accessible only: SQL translation of accessProfile rules before pagination
+  if (filter.accessibleOnly && accessProfile) {
+    const accessibleOrConditions = [
+      // Free posts for everyone
+      { '$minTier.rank$': { [Op.lte]: accessProfile.defaultRank } }
+    ];
+
+    // Creator owns their own posts
+    if (accessProfile.viewerId) {
+      accessibleOrConditions.push({ creatorId: accessProfile.viewerId });
+    }
+
+    // Active subscriptions for this viewer
+    for (const [creatorId, rank] of accessProfile.rankByCreatorId.entries()) {
+      if (rank > accessProfile.defaultRank) {
+        accessibleOrConditions.push({
+          [Op.and]: [
+            { creatorId },
+            { '$minTier.rank$': { [Op.lte]: rank } }
+          ]
+        });
+      }
+    }
+
+    andConditions.push({ [Op.or]: accessibleOrConditions });
+  }
+
+  return {
+    andConditions
+  };
+};
+
 const contentStore = {
+  encodeCursor,
+  decodeCursor,
+
   /**
    * Create a new content item
    */
@@ -56,14 +152,13 @@ const contentStore = {
   },
 
   /**
-   * Paginated listing of content items with eager-loaded creator (no N+1)
+   * Paginated listing of content items for REST (offset-based)
    */
   async findAll({ page = 1, limit = 10 } = {}) {
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 10));
     const offset = (pageNum - 1) * limitNum;
 
-    // Eager loading creator and minTier in a single query
     const { count, rows } = await Content.findAndCountAll({
       offset,
       limit: limitNum,
@@ -86,6 +181,91 @@ const contentStore = {
         totalPages
       }
     };
+  },
+
+  /**
+   * Keyset cursor pagination for GraphQL feed (newest first: createdAt DESC, id DESC)
+   */
+  async findFeedKeyset({ filter = {}, accessProfile = null, first = 20, afterCursor = null }) {
+    const feedConditions = buildFeedConditions({ filter, accessProfile });
+
+    if (feedConditions.isUnauthenticated) {
+      return { isUnauthenticated: true };
+    }
+    if (feedConditions.isEmpty) {
+      return {
+        items: [],
+        hasNextPage: false,
+        endCursor: null
+      };
+    }
+
+    const andConditions = [...feedConditions.andConditions];
+
+    // Keyset condition: (createdAt, id) < (afterCursor.createdAt, afterCursor.id)
+    if (afterCursor) {
+      andConditions.push({
+        [Op.or]: [
+          { createdAt: { [Op.lt]: afterCursor.createdAt } },
+          {
+            createdAt: afterCursor.createdAt,
+            id: { [Op.lt]: afterCursor.id }
+          }
+        ]
+      });
+    }
+
+    const whereClause = andConditions.length > 0 ? { [Op.and]: andConditions } : {};
+
+    const rows = await Content.findAll({
+      where: whereClause,
+      include: [
+        { model: Tier, as: 'minTier', attributes: ['name', 'rank'] },
+        creatorInclude
+      ],
+      order: [
+        ['createdAt', 'DESC'],
+        ['id', 'DESC']
+      ],
+      limit: first + 1
+    });
+
+    const hasNextPage = rows.length > first;
+    const pageRows = hasNextPage ? rows.slice(0, first) : rows;
+    const items = pageRows.map(formatContent);
+    const endCursor = items.length > 0 ? encodeCursor(items[items.length - 1]) : null;
+
+    return {
+      items,
+      hasNextPage,
+      endCursor
+    };
+  },
+
+  /**
+   * Count total posts matching the feed filter for the viewer (run ONLY when totalCount selected)
+   */
+  async countFeed({ filter = {}, accessProfile = null }) {
+    const feedConditions = buildFeedConditions({ filter, accessProfile });
+
+    if (feedConditions.isUnauthenticated || feedConditions.isEmpty) {
+      return 0;
+    }
+
+    const whereClause = feedConditions.andConditions.length > 0
+      ? { [Op.and]: feedConditions.andConditions }
+      : {};
+
+    const count = await Content.count({
+      where: whereClause,
+      include: [
+        { model: Tier, as: 'minTier', attributes: [] }
+      ],
+      distinct: true,
+      col: 'id'
+    });
+
+    return count;
   },
 
   /**
@@ -127,7 +307,6 @@ const contentStore = {
 
     await content.update(updateFields);
 
-    // Reload with associations
     const reloaded = await Content.findByPk(id, {
       include: [
         { model: Tier, as: 'minTier', attributes: ['name', 'rank'] },

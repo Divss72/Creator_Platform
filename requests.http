@@ -404,3 +404,112 @@ Authorization: Bearer {{subAToken}}
 GET {{baseUrl}}/api/content/{{vipPostId}}/comments
 Authorization: Bearer {{subBToken}}
 
+
+
+### -------------------------------------------------------------------
+### 10. GRAPHQL READ-ONLY API (v0.5)
+### -------------------------------------------------------------------
+
+### 10.1 Query Platform Tiers
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "query GetTiers { tiers { name rank priceCents } }"
+}
+
+### 10.2 Query Paginated Content Feed with Variables (Anonymous)
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "query GetFeed($first: Int, $after: String) { feed(first: $first, after: $after) { totalCount pageInfo { hasNextPage endCursor } edges { cursor node { id title minTier locked body excerpt viewerTier commentCount creator { id displayName } } } } }",
+  "variables": {
+    "first": 5,
+    "after": null
+  }
+}
+
+### 10.3 Query Feed Filtered by Creator (Alice)
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "query FilterByCreator($filter: FeedFilter) { feed(filter: $filter, first: 10) { totalCount edges { node { id title minTier locked creator { id displayName } } } } }",
+  "variables": {
+    "filter": {
+      "creatorId": "a1111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+    }
+  }
+}
+
+### 10.4 Query Feed Filtered by Accessible Posts Only (Anonymous: Free posts only)
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "query AccessibleOnly { feed(filter: { accessibleOnly: true }, first: 10) { totalCount edges { node { id title minTier locked body viewerTier } } } }"
+}
+
+### 10.5 Query Feed Filtered by Subscribed Creators Only (Subscriber A: Alice only)
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+Authorization: Bearer {{subAToken}}
+
+{
+  "query": "query SubscribedFeed { feed(filter: { subscribedOnly: true }, first: 10) { totalCount edges { node { id title creator { displayName } viewerTier locked } } } }"
+}
+
+### 10.6 Single Content Item (Free Post - Full Body)
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "query GetContent($id: ID!) { content(id: $id) { id title minTier locked body excerpt viewerTier commentCount creator { displayName bio } createdAt } }",
+  "variables": {
+    "id": "c1111111-1111-4111-8111-111111111111"
+  }
+}
+
+### 10.7 Single Content Item (VIP Post - Locked Preview for Anonymous)
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "query GetLockedContent($id: ID!) { content(id: $id) { id title minTier locked body excerpt viewerTier } }",
+  "variables": {
+    "id": "c3333333-3333-4333-8333-333333333333"
+  }
+}
+
+### 10.8 Creator Profile by ID
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "query GetCreator($id: ID!) { creator(id: $id) { id displayName bio } }",
+  "variables": {
+    "id": "a1111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+  }
+}
+
+### 10.9 Content Comments (Free Post - Paginated)
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "query GetComments($contentId: ID!, $limit: Int) { contentComments(contentId: $contentId, limit: $limit) { items { id body createdAt user { id name role } } nextBefore } }",
+  "variables": {
+    "contentId": "c1111111-1111-4111-8111-111111111111",
+    "limit": 2
+  }
+}
+
+### 10.10 Auth Error: Malformed Token - Expected: 401 INVALID_TOKEN
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+Authorization: Bearer invalid-garbage-token
+
+{
+  "query": "query { tiers { name } }"
+}
