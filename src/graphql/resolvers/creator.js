@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * Resolvers for Creator type.
  * Guarantees sensitive user fields (email, passwordHash) are never exposed.
@@ -11,6 +13,9 @@ const creatorResolvers = {
   },
   bio(parent) {
     return parent.bio || null;
+  },
+  avatarUrl(parent) {
+    return parent.avatarUrl || null;
   }
 };
 

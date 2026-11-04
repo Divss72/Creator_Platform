@@ -1,3 +1,5 @@
+'use strict';
+
 const { DateTime } = require('../scalars');
 const { Query } = require('./query');
 const { ContentItem } = require('./contentItem');
@@ -14,6 +16,10 @@ const resolvers = {
   Role: {
     CREATOR: 'creator',
     SUBSCRIBER: 'subscriber'
+  },
+  MediaKind: {
+    IMAGE: 'image',
+    VIDEO: 'video'
   },
   Query,
   ContentItem,
