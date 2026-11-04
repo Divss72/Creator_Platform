@@ -1,3 +1,5 @@
+'use strict';
+
 const { sequelize } = require('../config/database');
 
 const defineUser = require('./User');
@@ -6,6 +8,7 @@ const defineTier = require('./Tier');
 const defineContent = require('./Content');
 const defineSubscription = require('./Subscription');
 const defineComment = require('./Comment');
+const defineMedia = require('./Media');
 
 // Initialize models
 const User = defineUser(sequelize);
@@ -14,6 +17,7 @@ const Tier = defineTier(sequelize);
 const Content = defineContent(sequelize);
 const Subscription = defineSubscription(sequelize);
 const Comment = defineComment(sequelize);
+const Media = defineMedia(sequelize);
 
 // 1. User <-> CreatorProfile (1:1)
 User.hasOne(CreatorProfile, {
@@ -119,6 +123,34 @@ Comment.belongsTo(User, {
   onUpdate: 'CASCADE'
 });
 
+// 6. Content <-> Media (1:N)
+Content.hasMany(Media, {
+  foreignKey: 'contentId',
+  as: 'media',
+  onDelete: 'CASCADE',
+  onUpdate: 'CASCADE'
+});
+Media.belongsTo(Content, {
+  foreignKey: 'contentId',
+  as: 'content',
+  onDelete: 'CASCADE',
+  onUpdate: 'CASCADE'
+});
+
+// 7. User (creator) <-> Media (1:N)
+User.hasMany(Media, {
+  foreignKey: 'creatorId',
+  as: 'media',
+  onDelete: 'CASCADE',
+  onUpdate: 'CASCADE'
+});
+Media.belongsTo(User, {
+  foreignKey: 'creatorId',
+  as: 'creator',
+  onDelete: 'CASCADE',
+  onUpdate: 'CASCADE'
+});
+
 module.exports = {
   sequelize,
   User,
@@ -126,5 +158,6 @@ module.exports = {
   Tier,
   Content,
   Subscription,
-  Comment
+  Comment,
+  Media
 };

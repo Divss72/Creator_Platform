@@ -140,7 +140,7 @@ module.exports = {
         id: 'c1111111-1111-4111-8111-111111111111',
         creator_id: aliceId,
         title: 'Building Resilient Event-Driven Microservices (Free)',
-        body: 'Event-driven systems decouple producer and consumer lifecycles. In this free guide we explore outbox patterns, idempotent message processing, and dead letter queues in distributed systems.',
+        body: '<p>Event-driven systems decouple producer and consumer lifecycles. In this free guide we explore <strong>outbox patterns</strong>, idempotent message processing, and dead letter queues in distributed systems.</p><p>Check the <a href="https://microservices.io">architecture reference</a> for additional details.</p>',
         min_tier_id: freeTierId,
         created_at: new Date(baseTime.getTime() + 10 * minute),
         updated_at: now
@@ -149,7 +149,7 @@ module.exports = {
         id: 'c2222222-2222-4222-8222-222222222222',
         creator_id: aliceId,
         title: 'Pro Guide: Distributed Consensus & Raft Protocol (Pro)',
-        body: 'In this exclusive pro guide we introduce the core challenges of distributed consensus across modern database clusters. We will explore network splits, quorum requirements, and term numbering. --- DEEP TECHNICAL DIVE BELOW --- Leader elections, log replication, and commit indexes prevent split-brain conditions in distributed storage engines like etcd, CockroachDB, and Kafka metadata.',
+        body: '<p>In this exclusive pro guide we introduce the core challenges of distributed consensus across modern database clusters. We will explore network splits, quorum requirements, and term numbering.</p><p>--- DEEP TECHNICAL DIVE BELOW --- Leader elections, log replication, and <strong>commit indexes prevent split-brain</strong> conditions in distributed storage engines like etcd, CockroachDB, and Kafka metadata.</p>',
         min_tier_id: proTierId,
         created_at: new Date(baseTime.getTime() + 20 * minute),
         updated_at: now
@@ -158,7 +158,7 @@ module.exports = {
         id: 'c3333333-3333-4333-8333-333333333333',
         creator_id: aliceId,
         title: 'VIP Masterclass: Systems Architecture Review Checklist (VIP)',
-        body: 'Welcome to the private VIP systems architecture review masterclass. In this introductory section we review the essential audit requirements, operational readiness, and service level objectives. --- CONFIDENTIAL VIP DEEP DIVE --- Exclusive checklists covering zero-loss partition failover, automated chaos injection, and blast radius isolation protocols.',
+        body: '<p>Welcome to the private VIP systems architecture review masterclass. In this introductory section we review the essential audit requirements, operational readiness, and service level objectives.</p><p>--- CONFIDENTIAL VIP DEEP DIVE --- Exclusive checklists covering <strong>zero-loss partition failover</strong>, automated chaos injection, and blast radius isolation protocols.</p>',
         min_tier_id: vipTierId,
         created_at: new Date(baseTime.getTime() + 30 * minute),
         updated_at: now
@@ -167,7 +167,7 @@ module.exports = {
         id: 'ca000004-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         creator_id: aliceId,
         title: 'Understanding PostgreSQL MVCC Internals (Free)',
-        body: 'Deep dive into row versioning, transaction isolation levels, and vacuuming in PostgreSQL engines.',
+        body: '<p>Deep dive into row versioning, transaction isolation levels, and vacuuming in PostgreSQL engines.</p>',
         min_tier_id: freeTierId,
         created_at: new Date(baseTime.getTime() + 35 * minute),
         updated_at: now
@@ -176,7 +176,7 @@ module.exports = {
         id: 'ca000005-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         creator_id: aliceId,
         title: 'Pro Guide: High-Throughput Kafka Partitioning Strategies (Pro)',
-        body: 'Maximizing streaming ingestion pipelines while avoiding partition hot-spotting and head-of-line blocking.',
+        body: '<p>Maximizing streaming ingestion pipelines while avoiding partition hot-spotting and head-of-line blocking.</p>',
         min_tier_id: proTierId,
         created_at: new Date(baseTime.getTime() + 45 * minute),
         updated_at: now
@@ -185,7 +185,7 @@ module.exports = {
         id: 'ca000006-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         creator_id: aliceId,
         title: 'VIP Deep Dive: Zero-Downtime Database Schema Migrations (VIP)',
-        body: 'Contract-first backwards compatible column additions, view-based swaps, and live migration safety nets.',
+        body: '<p>Contract-first backwards compatible column additions, view-based swaps, and live migration safety nets.</p>',
         min_tier_id: vipTierId,
         created_at: new Date(baseTime.getTime() + 55 * minute),
         updated_at: now
@@ -194,7 +194,7 @@ module.exports = {
         id: 'ca000007-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         creator_id: aliceId,
         title: 'Cache Invalidation Patterns That Actually Work (Free)',
-        body: 'Cache-aside, write-through, and change data capture cache invalidation strategies explored with benchmarks.',
+        body: '<p>Cache-aside, write-through, and change data capture cache invalidation strategies explored with benchmarks.</p>',
         min_tier_id: freeTierId,
         created_at: new Date(baseTime.getTime() + 65 * minute),
         updated_at: now
@@ -203,7 +203,7 @@ module.exports = {
         id: 'ca000008-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
         creator_id: aliceId,
         title: 'Pro Guide: Real-Time WebSockets Architecture at Scale (Pro)',
-        body: 'Scaling Socket.io clusters with Redis adapters, sticky sessions, and horizontal fanout nodes.',
+        body: '<p>Scaling Socket.io clusters with Redis adapters, sticky sessions, and horizontal fanout nodes.</p>',
         min_tier_id: proTierId,
         created_at: tiedTimestamp, // Tied timestamp (1/3)
         updated_at: now
@@ -214,7 +214,7 @@ module.exports = {
         id: 'c4444444-4444-4444-8444-444444444444',
         creator_id: charlieId,
         title: 'Getting Started with Kubernetes on Bare Metal (Free)',
-        body: 'Demystifying kubeadm, CNI network plugins, and ingress controllers when provisioning Kubernetes outside managed clouds. Hands-on configuration steps included.',
+        body: '<p>Demystifying kubeadm, CNI network plugins, and ingress controllers when provisioning Kubernetes outside managed clouds. Hands-on configuration steps included.</p>',
         min_tier_id: freeTierId,
         created_at: new Date(baseTime.getTime() + 15 * minute),
         updated_at: now
@@ -223,7 +223,7 @@ module.exports = {
         id: 'c5555555-5555-4555-8555-555555555555',
         creator_id: charlieId,
         title: 'Pro Guide: GitOps with ArgoCD & Helm (Pro)',
-        body: 'Continuous automated reconciliation and declarative configuration drift detection for multi-cluster production environments with zero downtime canary rollouts.',
+        body: '<p>Continuous automated reconciliation and declarative configuration drift detection for multi-cluster production environments with zero downtime canary rollouts.</p>',
         min_tier_id: proTierId,
         created_at: new Date(baseTime.getTime() + 25 * minute),
         updated_at: now
@@ -232,7 +232,7 @@ module.exports = {
         id: 'c6666666-6666-4666-8666-666666666666',
         creator_id: charlieId,
         title: 'VIP Workshop: Production Incident Post-Mortem Analysis (VIP)',
-        body: 'Real incident dissection covering cascading connection pool exhaustion, thundering herd effects on Redis, and automated circuit breaking patterns.',
+        body: '<p>Real incident dissection covering cascading connection pool exhaustion, thundering herd effects on Redis, and automated circuit breaking patterns.</p>',
         min_tier_id: vipTierId,
         created_at: new Date(baseTime.getTime() + 40 * minute),
         updated_at: now
@@ -241,7 +241,7 @@ module.exports = {
         id: 'cc000004-cccc-4ccc-8ccc-cccccccccccc',
         creator_id: charlieId,
         title: 'Terraform State Management Best Practices (Free)',
-        body: 'Remote backends, state locking with DynamoDB, and preventing accidental resource destructions.',
+        body: '<p>Remote backends, state locking with DynamoDB, and preventing accidental resource destructions.</p>',
         min_tier_id: freeTierId,
         created_at: new Date(baseTime.getTime() + 50 * minute),
         updated_at: now
@@ -250,7 +250,7 @@ module.exports = {
         id: 'cc000005-cccc-4ccc-8ccc-cccccccccccc',
         creator_id: charlieId,
         title: 'Pro Guide: Multi-Cloud BGP Routing & Anycast Setup (Pro)',
-        body: 'Configuring BGP peering, routing tables, and latency-optimized global edge failovers.',
+        body: '<p>Configuring BGP peering, routing tables, and latency-optimized global edge failovers.</p>',
         min_tier_id: proTierId,
         created_at: new Date(baseTime.getTime() + 60 * minute),
         updated_at: now
@@ -259,7 +259,7 @@ module.exports = {
         id: 'cc000006-cccc-4ccc-8ccc-cccccccccccc',
         creator_id: charlieId,
         title: 'VIP Workshop: Multi-Region Kubernetes Disaster Recovery (VIP)',
-        body: 'Active-passive stateful synchronization, DNS automated switchover, and RPO/RTO verification.',
+        body: '<p>Active-passive stateful synchronization, DNS automated switchover, and RPO/RTO verification.</p>',
         min_tier_id: vipTierId,
         created_at: tiedTimestamp, // Tied timestamp (2/3)
         updated_at: now
@@ -268,7 +268,7 @@ module.exports = {
         id: 'cc000007-cccc-4ccc-8ccc-cccccccccccc',
         creator_id: charlieId,
         title: 'Prometheus Alerting Rules That Do Not Wake You Up (Free)',
-        body: 'SRE-proven alerting principles based on multi-window multi-burn-rate error budget consumption.',
+        body: '<p>SRE-proven alerting principles based on multi-window multi-burn-rate error budget consumption.</p>',
         min_tier_id: freeTierId,
         created_at: new Date(baseTime.getTime() + 70 * minute),
         updated_at: now
@@ -277,7 +277,7 @@ module.exports = {
         id: 'cc000008-cccc-4ccc-8ccc-cccccccccccc',
         creator_id: charlieId,
         title: 'VIP Masterclass: Kernel Tuning & eBPF Observability (VIP)',
-        body: 'Deep socket inspection, memory pressure profiling, and tracing kernel network stack bottlenecks.',
+        body: '<p>Deep socket inspection, memory pressure profiling, and tracing kernel network stack bottlenecks.</p>',
         min_tier_id: vipTierId,
         created_at: tiedTimestamp, // Tied timestamp (3/3)
         updated_at: now

@@ -1,3 +1,5 @@
+'use strict';
+
 const { DataTypes, Model } = require('sequelize');
 
 class CreatorProfile extends Model {}
@@ -29,6 +31,11 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING(255),
         allowNull: true,
         field: 'avatar_url'
+      },
+      avatarPublicId: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'avatar_public_id'
       }
     },
     {
