@@ -1,8 +1,8 @@
-# CreatorHub API (v0.5)
+# CreatorHub API (v0.6)
 
 > **Creator Economy Platform** — A subscription platform where creators publish tiered content (Free / Pro / VIP) and fans subscribe and chat live on each post.
 
-Version 0.5 introduces a **Read-Only GraphQL API** at `POST /graphql` alongside the REST and Socket.io endpoints, featuring keyset cursor pagination, flexible tier/creator feed filtering, single posts and creator profiles, comment history, zero body leakage guarantees, and development query monitoring.
+Version 0.6 introduces **Media Subsystem & Security Hardening**: Post media attachments (images & videos via Cloudinary with ephemeral signed delivery URLs), creator avatars, strict paywall parity (locked posts reveal zero media), a dual-class text safety policy (rich text sanitisation via `sanitize-html` and plain-text tag rejection), SQL injection defenses, HTTP security headers (`helmet`), unified CORS, multi-tier rate limiting, GraphQL cost controls, and strict production startup safety checks.
 
 ---
 
@@ -54,7 +54,13 @@ cp .env.example .env
 | `DB_USER` | MySQL username | `creatorhub_user` |
 | `DB_PASSWORD` | MySQL user password | `creatorhub_pass` |
 | `DB_LOGGING` | Enable SQL query logging in console (`true` or `false`) | `false` |
-| `CORS_ORIGIN` | Allowed origins for Socket.io (`*` in dev only, comma-separated in production) | `*` |
+| `CORS_ORIGIN` | Unified CORS allowed origins (`*` in dev, comma-separated in prod) | `*` |
+| `TRUST_PROXY` | Number of trusted reverse proxy hops (e.g. `1`) or `false` | `0` |
+| `RATE_LIMIT_ENABLED` | Enable rate limiting (`true` or `false`) | `true` |
+| `STORAGE_DRIVER` | File storage driver (`fake` for dev/test, `cloudinary` in prod) | `fake` |
+| `CLOUDINARY_CLOUD_NAME`| Cloudinary cloud name (required if `STORAGE_DRIVER=cloudinary`) | *(none)* |
+| `CLOUDINARY_API_KEY` | Cloudinary API key (required if `STORAGE_DRIVER=cloudinary`) | *(none)* |
+| `CLOUDINARY_API_SECRET`| Cloudinary API secret (required if `STORAGE_DRIVER=cloudinary`) | *(none)* |
 
 ### 3. Initialize Database, Run Migrations & Seed
 Run the all-in-one reset script (creates DB, runs migrations, seeds initial data):
@@ -122,6 +128,10 @@ The effective tier of any viewer requesting content by a specific creator is res
 | `npm run verify:associations` | Runs bidirectional relation verification script across all models |
 | `npm run verify:realtime` | Runs automated 65-check Socket.io realtime and chat verification suite |
 | `npm run verify:graphql` | Runs comprehensive 69-check GraphQL verification suite |
+| `npm run verify:media` | Runs 50-check media uploads and paywall parity verification suite |
+| `npm run verify:security` | Runs 47-check security hardening and rate limit verification suite |
+| `npm run verify:all` | Runs all 6 platform verification suites in sequence (298 checks) |
+| `npm run sanitize:backfill` | Runs data sanitisation backfill (dry-run or `--apply`) |
 
 ---
 
@@ -346,6 +356,11 @@ To run authenticated queries in Apollo Sandbox, add an HTTP Header at the bottom
 ---
 
 ## Architecture & Database Design
-For detailed Entity-Relationship diagrams, table descriptions, indexes, and design decisions, refer to [docs/DB-SCHEMA.md](docs/DB-SCHEMA.md).
+For architectural specifications and security details, see:
+- [docs/DB-SCHEMA.md](docs/DB-SCHEMA.md) — Entity-Relationship diagrams, table schemas, indexes.
+- [docs/MEDIA.md](docs/MEDIA.md) — Media storage drivers, upload flow, signed URLs, paywall parity.
+- [docs/SECURITY.md](docs/SECURITY.md) — Security hardening, dual-class text policy, rate limits, CORS.
+- [docs/GRAPHQL.md](docs/GRAPHQL.md) — GraphQL schema, queries, cursor pagination.
+- [docs/REALTIME.md](docs/REALTIME.md) — Socket.io live chat and room lifecycle.
 
 
