@@ -94,4 +94,38 @@
 - **Zero Leakage**: Sockets and REST endpoints serialize comments using a strict allow-list: `{ id, contentId, body, createdAt, user: { id, name, role } }`.
 - **Safe Facade**: REST controllers never import Socket.io directly; all realtime notifications pass through `src/realtime/events.js` and cannot crash HTTP requests.
 
+### v0.5: GraphQL Read-Only API (Completed)
+- [x] Implementation plan approved
+- [x] Installed `@apollo/server` v5, `@as-integrations/express4`, `graphql`, and `dataloader`
+- [x] Extracted shared serialization presenter `src/presenters/contentPresenter.js` (`formatContentItem`, `generateExcerpt`)
+- [x] Refactored `src/controllers/content.controller.js` to use shared presenter (verified 100% byte-for-byte REST compatibility)
+- [x] Extended `src/services/accessService.js` with `getViewerAccessProfile` and `resolveAccessFromProfile`
+- [x] Added `findActiveBySubscriber` in `src/store/subscriptionStore.js`
+- [x] Added `findCreatorsByIds` and `findCreatorById` in `src/store/userStore.js` (omitting email/passwordHash)
+- [x] Added `countByContentIds` in `src/store/commentStore.js` for batching
+- [x] Implemented keyset pagination (`WHERE (created_at, id) < cursor`), SQL-level access filters, and cursor codecs in `src/store/contentStore.js`
+- [x] Authoritative schema definition `src/graphql/schema.graphql` with queries (`tiers`, `feed`, `content`, `creator`, `contentComments`) and custom `DateTime` scalar
+- [x] Custom `DateTime` ISO-8601 scalar implementation in `src/graphql/scalars.js`
+- [x] Per-request DataLoaders in `src/graphql/loaders.js` (`creatorLoader`, `commentCountLoader`)
+- [x] Per-request authentication context in `src/graphql/context.js` (HTTP 401 on bad/expired tokens, allow-listed user fields)
+- [x] Central error mapping in `src/graphql/errors.js` mapping `ApiError` to standard codes (`UNAUTHENTICATED`, `INVALID_TOKEN`, `TOKEN_EXPIRED`, `NOT_FOUND`, `TIER_REQUIRED`, `VALIDATION_ERROR`, `INTERNAL_ERROR`)
+- [x] AST validation rule in `src/graphql/validation/depthLimit.js` enforcing maximum query depth <= 6
+- [x] AsyncLocalStorage SQL query counter plugin in `src/graphql/plugins/queryCountPlugin.js` exposing `extensions.queryCount` in development
+- [x] Thin resolvers in `src/graphql/resolvers/` (`index.js`, `query.js`, `contentItem.js`, `creator.js`, `comment.js`)
+- [x] Attached Apollo Server to Express via dedicated router in `src/graphql/index.js` with HTTP drain plugin, dev Sandbox, and production hardening
+- [x] Mounted `graphqlRouter` in `src/app.js` before 404 handler and hooked into `src/server.js` graceful shutdown
+- [x] Expanded demo seed data in `20261028000002-seed-demo-data.js` to 16 posts with tied timestamps for ID tiebreaker verification
+- [x] Documented GraphQL queries, mutations policy, fragment examples, and frontend guide in `docs/GRAPHQL.md`
+- [x] Appended Section 10 to `requests.http` with GraphQL feed queries, pagination, paywall previews, filters, and auth tests
+- [x] Built comprehensive 69-check automated test suite `scripts/verify-graphql.js` (paywall, zero body leak, aliases/fragments, keyset pagination, filters, DataLoader batching, depth limits, production hardening)
+- [x] Verified full regression pass: `verify-paywall.js` (56/56 checks) and `verify-realtime.js` (65/65 checks) passing
+- [x] Updated `README.md`, `docs/PROGRESS.md`, and prepared `docs/PR-v0.5.md`
+
+#### Notes & Decisions (v0.5):
+- **Shared Content Presenter**: Extracted `src/presenters/contentPresenter.js` so REST and GraphQL share identical serialization and preview generation logic. REST and GraphQL can never drift apart on paywall shapes.
+- **SQL-Level Access Filtering**: The `accessibleOnly` feed filter is resolved at the database query level via `accessProfile` (`owner OR free OR active_creator_subscription`), ensuring pages are never short and keyset cursors stay stable.
+- **Keyset Cursor Pagination**: Implemented `(created_at, id) < cursor` keyset pagination ordered newest first (`created_at DESC, id DESC`). No `OFFSET` is used; pages fetch `first + 1` rows to determine `hasNextPage` and return opaque base64 cursors.
+- **Constant SQL Query Count**: Feed query executes 1 query for content rows, 1 batched query for creator profiles (via `creatorLoader`), 1 batched query for comment counts (via `commentCountLoader`), and 1 optional count query if `totalCount` is selected. Query count is O(1) regardless of `first` page size.
+- **Production Hardening**: In production (`NODE_ENV=production`), Apollo introspection is rejected, `extensions.queryCount` is omitted, stack traces are masked, and Apollo Sandbox landing page is disabled.
+
 
