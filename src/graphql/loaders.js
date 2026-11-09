@@ -1,6 +1,9 @@
+'use strict';
+
 const DataLoader = require('dataloader');
 const userStore = require('../store/userStore');
 const commentStore = require('../store/commentStore');
+const mediaStore = require('../store/mediaStore');
 
 /**
  * Instantiate fresh DataLoaders per request.
@@ -19,9 +22,16 @@ const createLoaders = () => {
     return contentIds.map((id) => countsMap.get(id) || 0);
   });
 
+  // Batch media items by content ID
+  const mediaByContentIdLoader = new DataLoader(async (contentIds) => {
+    const mediaMap = await mediaStore.listByContentIds(contentIds);
+    return contentIds.map((id) => mediaMap.get(id) || []);
+  });
+
   return {
     creatorLoader,
-    commentCountLoader
+    commentCountLoader,
+    mediaByContentIdLoader
   };
 };
 

@@ -1,4 +1,4 @@
-# CreatorHub GraphQL Schema - Version 0.5 (v0.5)
+# CreatorHub GraphQL Schema - Version 0.6 (v0.6)
 # Single source of truth for the GraphQL read-only API
 
 scalar DateTime
@@ -14,6 +14,11 @@ enum Role {
   SUBSCRIBER
 }
 
+enum MediaKind {
+  IMAGE
+  VIDEO
+}
+
 type Tier {
   name: TierName!
   rank: Int!
@@ -24,6 +29,19 @@ type Creator {
   id: ID!
   displayName: String!
   bio: String
+  avatarUrl: String
+}
+
+type Media {
+  id: ID!
+  kind: MediaKind!
+  url: String!
+  thumbnailUrl: String!
+  width: Int
+  height: Int
+  durationSeconds: Float
+  bytes: Int!
+  position: Int!
 }
 
 type ContentItem {
@@ -36,6 +54,8 @@ type ContentItem {
   excerpt: String!
   viewerTier: TierName!
   commentCount: Int!
+  media: [Media!]!
+  mediaCount: Int!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -90,5 +110,5 @@ type Query {
   contentComments(contentId: ID!, limit: Int = 50, before: ID): CommentPage!
 }
 
-# TODO(future): Mutations (writes currently handled via REST: register, login, create content, subscribe)
+# TODO(future): Mutations (writes currently handled via REST: register, login, create content, subscribe, media uploads)
 # TODO(future): Subscriptions (live chat comments and presence currently handled via Socket.io)

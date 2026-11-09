@@ -1,3 +1,5 @@
+'use strict';
+
 const ApiError = require('../utils/apiError');
 
 const KNOWN_CODES = new Set([
@@ -7,6 +9,12 @@ const KNOWN_CODES = new Set([
   'NOT_FOUND',
   'TIER_REQUIRED',
   'VALIDATION_ERROR',
+  'PAYLOAD_TOO_LARGE',
+  'UNSUPPORTED_MEDIA_TYPE',
+  'MEDIA_LIMIT',
+  'QUOTA_EXCEEDED',
+  'UPLOAD_FAILED',
+  'RATE_LIMITED',
   'INTERNAL_ERROR',
   'GRAPHQL_PARSE_FAILED',
   'GRAPHQL_VALIDATION_FAILED'

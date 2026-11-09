@@ -129,3 +129,32 @@
 - **Production Hardening**: In production (`NODE_ENV=production`), Apollo introspection is rejected, `extensions.queryCount` is omitted, stack traces are masked, and Apollo Sandbox landing page is disabled.
 
 
+
+### v0.6: Media + Security Hardening (Completed)
+- [x] Implementation plan approved
+- [x] Installed `cloudinary`, `multer`, `sanitize-html`, `express-rate-limit`, `helmet`, and `file-type@16.5.4` (CommonJS)
+- [x] Database migrations: `20261104000001-create-media` (`media` table) and `20261104000002-add-avatar-public-id-to-creator-profiles` (`avatar_public_id` column)
+- [x] Tested clean rollback and re-apply of both migrations
+- [x] Defined `Media` model in `src/models/Media.js` with bidirectional associations to `Content` and `User`
+- [x] Storage driver abstraction in `src/services/storage/` (`index.js`, `cloudinaryDriver.js`, `fakeDriver.js`)
+- [x] Business logic in `src/services/mediaService.js`: MIME sniffing, magic byte verification, SVG rejection, atomic limits, row-locking quota checks, signing, cascade deletion
+- [x] Dual-class text safety policy in `src/services/sanitizeService.js`: `sanitizeRichText` (safe HTML tags with `rel="noopener noreferrer nofollow"`), `cleanPlainText` (Unicode NFC, bidi removal, control char removal, HTML tag rejection), `generatePlainTextExcerpt`
+- [x] Updated presenters in `src/presenters/contentPresenter.js` to format `media` allow-list and `mediaCount` with zero leakage on locked posts
+- [x] Integrated `cleanPlainText` across validators (`content.validator.js`, `auth.validator.js`, `creators.validator.js`) and `commentService.js`
+- [x] Data sanitisation backfill script in `scripts/sanitize-backfill.js` (dry-run and `--apply`)
+- [x] Multi-tier rate limiting in `src/middleware/rateLimiters.js` and `src/config/limits.js` (global, auth register, auth login with skip successful, user writes, media upload, GraphQL)
+- [x] GraphQL cost limiter in `src/graphql/validation/rootFieldsLimit.js` capping root fields and aliases <= 10
+- [x] Socket handshake rate limiter capping concurrent connections <= 20 per IP
+- [x] Unified CORS configuration in `src/config/cors.js` shared by REST, GraphQL, and Socket.io
+- [x] Strict production startup safety checks in `src/config/env.js`
+- [x] Express request body size limit set to 100 KB; helmet configured with dev-relaxed CSP and strict production CSP
+- [x] Extended GraphQL schema and resolvers with `MediaKind`, `Media` type, `ContentItem.media`, `ContentItem.mediaCount`, and `Creator.avatarUrl`
+- [x] Created `docs/MEDIA.md`, `docs/SECURITY.md`, `docs/PR-v0.6.md`, updated `docs/DB-SCHEMA.md`, `README.md`, `requests.http`
+- [x] Built comprehensive verification suites: `scripts/verify-media.js` (50/50 checks) and `scripts/verify-security.js` (47/47 checks)
+- [x] Built unified test runner `scripts/verify-all.js` (all 6 platform test suites passed cleanly: 298/298 checks)
+
+#### Notes & Decisions (v0.6):
+- **Authenticated Cloudinary Delivery**: Post media is never stored publicly; uploaded under `type: 'authenticated'` with ephemeral signed URLs generated on the fly.
+- **Paywall Parity on Media**: When a post is locked, `media` is `[]`, `mediaCount` is visible, and Cloudinary `public_id` is never revealed to any client.
+- **Atomic Concurrency Protection**: Multi-attachment limits ($\le 5$) and creator storage quotas ($\le 200$ MB) are guarded with database transactions and `SELECT ... FOR UPDATE` row locks to prevent race condition over-allocation.
+- **Dual-Class Text Safety**: Distinguishes rich-text (post bodies, sanitized via `sanitize-html`) from plain-text (titles, names, comments, bios, which strictly reject tag-like syntax while permitting mathematical symbols like `<3` and `<`).

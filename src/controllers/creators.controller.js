@@ -1,3 +1,5 @@
+'use strict';
+
 const { userStore } = require('../store');
 const ApiError = require('../utils/apiError');
 
@@ -18,6 +20,7 @@ const getCreatorProfile = async (req, res) => {
       name: user.name,
       displayName: user.displayName,
       bio: user.bio,
+      avatarUrl: user.avatarUrl || null,
       createdAt: user.createdAt
     }
   });
@@ -44,6 +47,7 @@ const updateMyProfile = async (req, res) => {
       name: updatedUser.name,
       displayName: updatedUser.displayName,
       bio: updatedUser.bio,
+      avatarUrl: updatedUser.avatarUrl || null,
       updatedAt: updatedUser.updatedAt
     }
   });

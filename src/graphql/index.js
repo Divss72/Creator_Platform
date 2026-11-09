@@ -1,3 +1,5 @@
+'use strict';
+
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
@@ -13,7 +15,10 @@ const resolvers = require('./resolvers');
 const { buildContext } = require('./context');
 const { formatError } = require('./errors');
 const { createDepthLimitRule } = require('./validation/depthLimit');
+const { createRootFieldsLimitRule } = require('./validation/rootFieldsLimit');
 const { queryCountPlugin, queryCounterMiddleware } = require('./plugins/queryCountPlugin');
+const { corsOptions } = require('../config/cors');
+const { graphqlLimiter } = require('../middleware/rateLimiters');
 const env = require('../config/env');
 
 /**
@@ -42,19 +47,15 @@ const attachGraphQL = async (router, httpServer) => {
     resolvers,
     formatError,
     introspection: isDev,
-    validationRules: [createDepthLimitRule(6)],
+    validationRules: [createDepthLimitRule(6), createRootFieldsLimitRule(10)],
     plugins
   });
 
   await server.start();
 
-  const corsOptions = {
-    origin: isDev ? (env.CORS_ORIGIN || '*') : env.CORS_ORIGIN,
-    credentials: true
-  };
-
   router.use(
     cors(corsOptions),
+    graphqlLimiter,
     express.json({ limit: '100kb' }),
     queryCounterMiddleware,
     expressMiddleware(server, {

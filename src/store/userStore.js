@@ -1,3 +1,5 @@
+'use strict';
+
 const { Op } = require('sequelize');
 const { sequelize, User, CreatorProfile } = require('../models');
 
@@ -19,6 +21,8 @@ const formatUser = (userInstance) => {
     role: user.role,
     displayName: user.profile ? user.profile.displayName : user.name,
     bio: user.profile ? user.profile.bio : '',
+    avatarUrl: user.profile ? user.profile.avatarUrl : null,
+    avatarPublicId: user.profile ? user.profile.avatarPublicId : null,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt
   };
@@ -65,6 +69,8 @@ const userStore = {
         role: user.role,
         displayName: profile ? profile.displayName : user.name,
         bio: profile ? profile.bio : '',
+        avatarUrl: null,
+        avatarPublicId: null,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       };
@@ -107,7 +113,7 @@ const userStore = {
    * Only returns users with role 'creator'.
    * Strictly omits private fields (email, passwordHash).
    * @param {string[]} ids
-   * @returns {Promise<Map<string, { id: string, displayName: string, bio: string }>>}
+   * @returns {Promise<Map<string, { id: string, displayName: string, bio: string, avatarUrl: string|null }>>}
    */
   async findCreatorsByIds(ids) {
     const map = new Map();
@@ -129,7 +135,8 @@ const userStore = {
       map.set(plain.id, {
         id: plain.id,
         displayName: plain.profile ? plain.profile.displayName : plain.name,
-        bio: plain.profile ? plain.profile.bio : null
+        bio: plain.profile ? plain.profile.bio : null,
+        avatarUrl: plain.profile ? plain.profile.avatarUrl : null
       });
     }
 
@@ -140,7 +147,7 @@ const userStore = {
    * Find a single creator by ID (returns null if not found or not a creator).
    * Strictly omits private fields (email, passwordHash).
    * @param {string} id
-   * @returns {Promise<{ id: string, displayName: string, bio: string }|null>}
+   * @returns {Promise<{ id: string, displayName: string, bio: string, avatarUrl: string|null }|null>}
    */
   async findCreatorById(id) {
     if (!id) return null;
@@ -153,8 +160,22 @@ const userStore = {
     return {
       id: plain.id,
       displayName: plain.profile ? plain.profile.displayName : plain.name,
-      bio: plain.profile ? plain.profile.bio : null
+      bio: plain.profile ? plain.profile.bio : null,
+      avatarUrl: plain.profile ? plain.profile.avatarUrl : null
     };
+  },
+
+  /**
+   * Update avatar for a creator profile.
+   * Returns old avatarPublicId (if any) so old asset can be destroyed.
+   */
+  async updateAvatar(userId, { avatarUrl, avatarPublicId }) {
+    const profile = await CreatorProfile.findOne({ where: { userId } });
+    if (!profile) return null;
+
+    const oldAvatarPublicId = profile.avatarPublicId;
+    await profile.update({ avatarUrl, avatarPublicId });
+    return { oldAvatarPublicId, avatarUrl };
   },
 
   /**
