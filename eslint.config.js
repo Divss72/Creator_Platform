@@ -135,6 +135,7 @@ module.exports = [
   // Ignore directories
   {
     ignores: [
+      'web/**',
       'node_modules/**',
       'coverage/**',
       'dist/**',

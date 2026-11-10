@@ -2,4 +2,7 @@ node_modules
 coverage
 package-lock.json
 .git
+web/node_modules
+web/dist
+
 

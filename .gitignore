@@ -6,6 +6,9 @@ yarn-error.log*
 .DS_Store
 coverage/
 dist/
+web/dist/
+web/node_modules/
+
 
 # Firebase service account keys and local mail
 *firebase-service-account*.json

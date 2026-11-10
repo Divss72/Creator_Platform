@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
@@ -233,6 +234,25 @@ function createApp(overrides = {}) {
 
   // API Routes
   app.use('/api', apiRoutes);
+
+  // Static serving of web client build if available (SPA Fallback)
+  const webDistPath = path.resolve(__dirname, '..', 'web', 'dist');
+  if (fs.existsSync(webDistPath)) {
+    app.use(express.static(webDistPath));
+    app.get('*', (req, res, next) => {
+      // Don't intercept API, graphql, or dev routes
+      if (
+        req.path.startsWith('/api') ||
+        req.path.startsWith('/graphql') ||
+        req.path.startsWith('/dev') ||
+        req.path.startsWith('/health') ||
+        req.path.startsWith('/version')
+      ) {
+        return next();
+      }
+      res.sendFile(path.join(webDistPath, 'index.html'));
+    });
+  }
 
   // 404 handler
   app.use(notFound);
