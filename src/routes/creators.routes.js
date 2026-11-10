@@ -8,7 +8,7 @@ const requireRole = require('../middleware/requireRole');
 const validate = require('../middleware/validate');
 const { updateProfileSchema } = require('../validators/creators.validator');
 const asyncHandler = require('../utils/asyncHandler');
-const { userWritesLimiter, mediaUploadLimiter } = require('../middleware/rateLimiters');
+const { userWritesLimiter, mediaUploadLimiter, firebaseTokenLimiter } = require('../middleware/rateLimiters');
 const { avatarUpload } = require('../middleware/upload');
 
 const router = Router();
@@ -31,6 +31,23 @@ router.put(
   mediaUploadLimiter,
   avatarUpload,
   asyncHandler(mediaController.uploadAvatar)
+);
+
+// Mint Firebase custom token for creator live dashboard
+router.get(
+  '/me/firebase-token',
+  requireAuth,
+  requireRole('creator'),
+  firebaseTokenLimiter,
+  asyncHandler(creatorsController.getFirebaseToken)
+);
+
+// REST fallback for creator live dashboard
+router.get(
+  '/me/dashboard/subscribers',
+  requireAuth,
+  requireRole('creator'),
+  asyncHandler(creatorsController.getDashboardSubscribers)
 );
 
 // Public creator profile

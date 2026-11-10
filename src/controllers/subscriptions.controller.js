@@ -2,6 +2,7 @@ const { userStore, subscriptionStore, tierStore } = require('../store');
 const mockPaymentService = require('../services/mockPaymentService');
 const ApiError = require('../utils/apiError');
 const realtimeEvents = require('../realtime/events');
+const { emitSubscriptionChanged } = require('../events/domainEvents');
 
 /**
  * Subscribe, upgrade, downgrade, or reactivate subscription (Subscriber only)
@@ -51,6 +52,15 @@ const subscribe = async (req, res) => {
     console.error('[Subscriptions Controller] Realtime notification error:', err.message);
   }
 
+  // Emit domain event for side effects (welcome email, live Firebase count)
+  emitSubscriptionChanged({
+    subscriberId: req.user.id,
+    creatorId,
+    action: result.action || (result.isNew ? 'created' : 'upgraded'),
+    tier,
+    previousTier: result.previousTier || null
+  });
+
   res.status(result.statusCode).json({
     subscription: result.subscription
   });
@@ -91,6 +101,15 @@ const cancelSubscription = async (req, res) => {
   } catch (err) {
     console.error('[Subscriptions Controller] Realtime notification error:', err.message);
   }
+
+  // Emit domain event for side effects (Firebase count update)
+  emitSubscriptionChanged({
+    subscriberId: req.user.id,
+    creatorId,
+    action: 'cancelled',
+    tier: cancelled.tier,
+    previousTier: cancelled.tier
+  });
 
   res.status(200).json({
     message: 'Subscription cancelled successfully',

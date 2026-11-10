@@ -517,7 +517,8 @@ async function runVerification() {
       CLOUDINARY_CLOUD_NAME: 'test_cloud',
       CLOUDINARY_API_KEY: 'test_key',
       CLOUDINARY_API_SECRET: 'test_secret',
-      JWT_SECRET: 'production-secret-must-be-unique-and-not-default-32chars!'
+      JWT_SECRET: 'production-secret-must-be-unique-and-not-default-32chars!',
+      EMAIL_TOKEN_SECRET: 'production-email-token-secret-must-be-unique-min32!'
     },
     stdio: 'pipe'
   });

@@ -1,4 +1,4 @@
-# CreatorHub Database Schema (v0.6)
+# CreatorHub Database Schema (v0.7)
 
 This document provides the Entity-Relationship (ER) diagram, table descriptions, column definitions, and design decisions for the CreatorHub MySQL relational database.
 
@@ -25,6 +25,8 @@ erDiagram
         varchar(255) email UK
         varchar(255) password_hash
         enum role "creator, subscriber"
+        boolean notify_new_posts "default true"
+        boolean notify_weekly_digest "default true"
         datetime created_at
         datetime updated_at
     }
@@ -96,6 +98,20 @@ erDiagram
         datetime created_at
         datetime updated_at
     }
+
+    email_outbox {
+        char(36) id PK
+        varchar(255) recipient
+        varchar(50) template "welcome, new_post, digest"
+        varchar(255) subject
+        json payload
+        enum status "pending, sending, sent, failed, skipped"
+        int attempts "default 0"
+        text last_error
+        varchar(255) idempotency_key UK
+        datetime created_at
+        datetime updated_at
+    }
 ```
 
 ---
@@ -108,6 +124,8 @@ Core user identity table supporting both `'creator'` and `'subscriber'` roles.
 - `email`: Normalized unique index preventing duplicate registrations.
 - `password_hash`: Bcrypt salted hash, never exposed in API responses.
 - `role`: Restricted enum (`creator` or `subscriber`).
+- `notify_new_posts`: Boolean (default `true`) indicating opt-in preference for new post notification emails.
+- `notify_weekly_digest`: Boolean (default `true`) indicating opt-in preference for weekly summary digest emails.
 
 ### `creator_profiles`
 1-to-1 profile extension for users with the `'creator'` role.
@@ -157,6 +175,21 @@ Discussion comments published under content posts.
 - `user_id`: Foreign key referencing `users(id)` with `ON DELETE CASCADE`.
 - **Index**: `idx_comments_content_created_at` (`content_id`, `created_at`).
 
+### `email_outbox` (Added in v0.7)
+Transactional outbox table for reliable asynchronous email delivery and send-time verification.
+- `id`: UUID (`CHAR(36)`) primary key.
+- `recipient`: Target email address (`VARCHAR(255)`).
+- `template`: Email template identifier (`welcome`, `new_post`, `digest`).
+- `subject`: Email subject line (CR/LF sanitized).
+- `payload`: Structured JSON containing metadata, template variables, and access-check parameters (`subscriberId`, `creatorId`, `contentId`, `minTierId`).
+- `status`: Outbox row lifecycle state (`pending`, `sending`, `sent`, `failed`, `skipped`).
+- `attempts`: Count of delivery attempts before permanent failure.
+- `last_error`: Text details of transient error or skip reason (e.g. `access_revoked`, `opted_out`).
+- `idempotency_key`: Unique string token (e.g., `welcome:${subId}:${creatorId}`, `digest:${userId}:${isoWeek}`) preventing duplicate sends.
+- **Indexes**:
+  - `idx_email_outbox_status_created`: `(status, created_at)`
+  - `idx_email_outbox_idempotency_key`: `(idempotency_key)` UNIQUE
+
 ---
 
 ## 3. Key Design Decisions
@@ -165,3 +198,4 @@ Discussion comments published under content posts.
 2. **Decoupled Store Layer**: Controllers and GraphQL resolvers never import Sequelize models directly; all database interactions are encapsulated in `src/store/`.
 3. **Atomic Quotas & Row Locks**: Media attachment limits ($\le 5$) and creator quotas ($\le 200$ MB) are enforced with `SELECT ... FOR UPDATE` row locks inside managed transactions to eliminate race conditions under parallel uploads.
 4. **Cascade Asset Cleanup**: Database foreign keys enforce cascade deletion. When a post or creator is deleted, the storage layer destroys corresponding assets on Cloudinary.
+5. **Transactional Outbox & Send-Time Checks**: All outbound notifications are committed to MySQL within domain event listeners, decoupled from the incoming client request. Worker polls with `SELECT ... FOR UPDATE SKIP LOCKED` and re-verifies active tier access right before transmission, guaranteeing zero data leakage even under concurrent cancellation.

@@ -4,6 +4,8 @@ const env = require('./config/env');
 const { sequelize } = require('./models');
 const { initRealtime, closeRealtime } = require('./realtime');
 const { attachGraphQL } = require('./graphql');
+const { registerDomainListeners } = require('./events/listeners');
+const { startJobs, stopJobs } = require('./jobs');
 
 async function startServer() {
   try {
@@ -22,20 +24,33 @@ async function startServer() {
     process.exit(1);
   }
 
+  // Register in-process domain event listeners
+  registerDomainListeners();
+
   const server = http.createServer(app);
   initRealtime(server);
 
   // Attach Apollo GraphQL server to app's dedicated graphqlRouter
   const apolloServer = await attachGraphQL(app.graphqlRouter, server);
 
+  // Start background jobs (outbox worker, purge, digest cron, firebase reconcile)
+  startJobs();
+
   server.listen(env.PORT, () => {
     console.log(`[CreatorHub] API server listening on port ${env.PORT} in ${env.NODE_ENV} mode`);
     console.log(`[CreatorHub] GraphQL endpoint available at POST http://localhost:${env.PORT}/graphql`);
   });
 
-  // Graceful shutdown order: Socket.io, then Apollo (server.stop()), then HTTP server, then DB connection
+  // Graceful shutdown order: Jobs -> Socket.io -> Apollo -> HTTP server -> DB connection
   const shutdown = async (signal) => {
     console.log(`[CreatorHub] Received ${signal}. Shutting down gracefully...`);
+    try {
+      await stopJobs();
+      console.log('[CreatorHub] Background jobs stopped.');
+    } catch (err) {
+      console.error('[CreatorHub] Error stopping background jobs:', err.message);
+    }
+
     try {
       await closeRealtime();
       console.log('[CreatorHub] Socket.io connections closed.');

@@ -591,3 +591,49 @@ Content-Type: application/json
 {
   "query": "query Flood { f1: tiers { name } f2: tiers { name } f3: tiers { name } f4: tiers { name } f5: tiers { name } f6: tiers { name } f7: tiers { name } f8: tiers { name } f9: tiers { name } f10: tiers { name } f11: tiers { name } }"
 }
+
+### -------------------------------------------------------------------
+### 13. NOTIFICATION PREFERENCES & UNSUBSCRIBE (v0.7)
+### -------------------------------------------------------------------
+
+### 13.1 Get Current User Notification Preferences (Expected: 200)
+GET {{baseUrl}}/api/notifications/preferences
+Authorization: Bearer {{bobToken}}
+
+### 13.2 Update Notification Preferences (Opt-out of digests) (Expected: 200)
+PUT {{baseUrl}}/api/notifications/preferences
+Authorization: Bearer {{bobToken}}
+Content-Type: application/json
+
+{
+  "notifyNewPosts": true,
+  "notifyWeeklyDigest": false
+}
+
+### 13.3 Public Unsubscribe Page Check (Token required) (Expected: 400 without token)
+GET {{baseUrl}}/api/email/unsubscribe
+
+### 13.4 Public One-Click Unsubscribe POST (RFC 8058)
+POST {{baseUrl}}/api/email/unsubscribe?token=sample_invalid_token
+Content-Type: application/x-www-form-urlencoded
+
+### -------------------------------------------------------------------
+### 14. CREATOR DASHBOARD & FIREBASE METRICS (v0.7)
+### -------------------------------------------------------------------
+
+### 14.1 Creator Realtime Database Custom Token (Expected: 200 { token, path })
+GET {{baseUrl}}/api/creators/me/firebase-token
+Authorization: Bearer {{aliceToken}}
+
+### 14.2 Non-Creator Requesting Firebase Token (Expected: 403 Forbidden)
+GET {{baseUrl}}/api/creators/me/firebase-token
+Authorization: Bearer {{bobToken}}
+
+### 14.3 Creator Dashboard Subscribers Fallback (Expected: 200 { subscriberCount, byTier })
+GET {{baseUrl}}/api/creators/me/dashboard/subscribers
+Authorization: Bearer {{aliceToken}}
+
+### 14.4 Non-Creator Requesting Dashboard Subscribers (Expected: 403 Forbidden)
+GET {{baseUrl}}/api/creators/me/dashboard/subscribers
+Authorization: Bearer {{bobToken}}
+

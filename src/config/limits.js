@@ -35,6 +35,14 @@ module.exports = {
     SOCKET_COMMENT_BURST: {
       WINDOW_MS: 10 * 1000, // 10 seconds
       MAX_COMMENTS: 5
+    },
+    UNSUBSCRIBE: {
+      WINDOW_MS: 60 * 60 * 1000, // 1 hour
+      MAX_REQUESTS: 30
+    },
+    FIREBASE_TOKEN: {
+      WINDOW_MS: 15 * 60 * 1000, // 15 minutes
+      MAX_REQUESTS: 10
     }
   },
 

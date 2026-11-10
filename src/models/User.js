@@ -27,6 +27,18 @@ module.exports = (sequelize) => {
       role: {
         type: DataTypes.ENUM('creator', 'subscriber'),
         allowNull: false
+      },
+      notifyNewPosts: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+        field: 'notify_new_posts'
+      },
+      notifyWeeklyDigest: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+        field: 'notify_weekly_digest'
       }
     },
     {

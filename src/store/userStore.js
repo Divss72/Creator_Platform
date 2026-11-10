@@ -23,6 +23,8 @@ const formatUser = (userInstance) => {
     bio: user.profile ? user.profile.bio : '',
     avatarUrl: user.profile ? user.profile.avatarUrl : null,
     avatarPublicId: user.profile ? user.profile.avatarPublicId : null,
+    notifyNewPosts: user.notifyNewPosts !== undefined ? Boolean(user.notifyNewPosts) : true,
+    notifyWeeklyDigest: user.notifyWeeklyDigest !== undefined ? Boolean(user.notifyWeeklyDigest) : true,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt
   };
@@ -237,6 +239,73 @@ const userStore = {
   /**
    * Helper to strip sensitive data
    */
+  /**
+   * Update notification preferences for a user
+   * @param {string} id
+   * @param {Object} prefs
+   * @param {boolean} [prefs.notifyNewPosts]
+   * @param {boolean} [prefs.notifyWeeklyDigest]
+   * @returns {Promise<{ notifyNewPosts: boolean, notifyWeeklyDigest: boolean }|null>}
+   */
+  async updateNotificationPreferences(id, prefs) {
+    const user = await User.findByPk(id);
+    if (!user) return null;
+
+    const updates = {};
+    if (prefs.notifyNewPosts !== undefined) {
+      updates.notifyNewPosts = Boolean(prefs.notifyNewPosts);
+    }
+    if (prefs.notifyWeeklyDigest !== undefined) {
+      updates.notifyWeeklyDigest = Boolean(prefs.notifyWeeklyDigest);
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await user.update(updates);
+    }
+
+    return {
+      notifyNewPosts: user.notifyNewPosts,
+      notifyWeeklyDigest: user.notifyWeeklyDigest
+    };
+  },
+
+  /**
+   * Paged query of users eligible for weekly digest (notifyWeeklyDigest = true).
+   * @param {Object} options
+   * @param {string} [options.afterUserId]
+   * @param {number} [options.limit=100]
+   * @returns {Promise<Array<{ id: string, name: string, email: string }>>}
+   */
+  async findDigestEligibleUsers({ afterUserId, limit = 100 } = {}) {
+    const where = {
+      notifyWeeklyDigest: true
+    };
+    if (afterUserId) {
+      where.id = { [Op.gt]: afterUserId };
+    }
+
+    const users = await User.findAll({
+      where,
+      attributes: ['id', 'name', 'email'],
+      order: [['id', 'ASC']],
+      limit
+    });
+
+    return users.map((u) => u.get({ plain: true }));
+  },
+
+  /**
+   * List all creator IDs for reconciliation jobs.
+   * @returns {Promise<string[]>}
+   */
+  async listAllCreatorIds() {
+    const creators = await User.findAll({
+      where: { role: 'creator' },
+      attributes: ['id']
+    });
+    return creators.map((c) => c.id);
+  },
+
   sanitize
 };
 

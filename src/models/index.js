@@ -9,6 +9,7 @@ const defineContent = require('./Content');
 const defineSubscription = require('./Subscription');
 const defineComment = require('./Comment');
 const defineMedia = require('./Media');
+const defineEmailOutbox = require('./EmailOutbox');
 
 // Initialize models
 const User = defineUser(sequelize);
@@ -18,6 +19,7 @@ const Content = defineContent(sequelize);
 const Subscription = defineSubscription(sequelize);
 const Comment = defineComment(sequelize);
 const Media = defineMedia(sequelize);
+const EmailOutbox = defineEmailOutbox(sequelize);
 
 // 1. User <-> CreatorProfile (1:1)
 User.hasOne(CreatorProfile, {
@@ -151,6 +153,20 @@ Media.belongsTo(User, {
   onUpdate: 'CASCADE'
 });
 
+// 8. User <-> EmailOutbox (1:N)
+User.hasMany(EmailOutbox, {
+  foreignKey: 'userId',
+  as: 'outboxEmails',
+  onDelete: 'CASCADE',
+  onUpdate: 'CASCADE'
+});
+EmailOutbox.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user',
+  onDelete: 'CASCADE',
+  onUpdate: 'CASCADE'
+});
+
 module.exports = {
   sequelize,
   User,
@@ -159,5 +175,6 @@ module.exports = {
   Content,
   Subscription,
   Comment,
-  Media
+  Media,
+  EmailOutbox
 };

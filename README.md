@@ -1,8 +1,11 @@
-# CreatorHub API (v0.6)
+# CreatorHub API (v0.7)
 
 > **Creator Economy Platform** — A subscription platform where creators publish tiered content (Free / Pro / VIP) and fans subscribe and chat live on each post.
 
-Version 0.6 introduces **Media Subsystem & Security Hardening**: Post media attachments (images & videos via Cloudinary with ephemeral signed delivery URLs), creator avatars, strict paywall parity (locked posts reveal zero media), a dual-class text safety policy (rich text sanitisation via `sanitize-html` and plain-text tag rejection), SQL injection defenses, HTTP security headers (`helmet`), unified CORS, multi-tier rate limiting, GraphQL cost controls, and strict production startup safety checks.
+Version 0.7 introduces **Email Notifications (Transactional Outbox) & Firebase Live Subscriber Metrics**:
+- **Transactional Outbox Email Subsystem**: Welcome emails on subscription, new-post fan-out with send-time access checks, automated weekly digest with ISO-week deduplication, user notification preferences, and RFC 8058 one-click unsubscribe links with HMAC-SHA256 signatures.
+- **Firebase Live Subscriber Metrics**: Realtime subscriber counts (total and per-tier breakdown) mirrored from MySQL to Firebase Realtime Database with write debouncing, automatic retries, and hourly reconciliation. Creator dashboard token minting and REST fallback endpoints.
+- **Side-Effect Isolation**: Email and Firebase operations run strictly as side effects; failures never block, fail, or roll back REST, GraphQL, or Socket.io operations. MySQL remains the single source of truth.
 
 ---
 
@@ -61,6 +64,19 @@ cp .env.example .env
 | `CLOUDINARY_CLOUD_NAME`| Cloudinary cloud name (required if `STORAGE_DRIVER=cloudinary`) | *(none)* |
 | `CLOUDINARY_API_KEY` | Cloudinary API key (required if `STORAGE_DRIVER=cloudinary`) | *(none)* |
 | `CLOUDINARY_API_SECRET`| Cloudinary API secret (required if `STORAGE_DRIVER=cloudinary`) | *(none)* |
+| `MAIL_DRIVER` | Email transport driver (`log` for dev/test, `smtp` in prod) | `log` |
+| `SMTP_HOST` | SMTP server hostname (required if `MAIL_DRIVER=smtp`) | `127.0.0.1` |
+| `SMTP_PORT` | SMTP server port | `1025` |
+| `SMTP_USER` | SMTP server username | *(empty)* |
+| `SMTP_PASS` | SMTP server password | *(empty)* |
+| `SMTP_FROM` | Default outgoing sender email address | `CreatorHub <notifications@creatorhub.local>` |
+| `EMAIL_TOKEN_SECRET` | Secret key for signing HMAC unsubscribe tokens (min 32 chars) | `super-secret-email-token-key-change-in-production-min32` |
+| `FIREBASE_DRIVER` | Firebase driver (`fake` for dev/test, `firebase` in prod) | `fake` |
+| `FIREBASE_PROJECT_ID` | Firebase project identifier | *(optional in fake)* |
+| `FIREBASE_CLIENT_EMAIL`| Firebase service account client email | *(optional in fake)* |
+| `FIREBASE_PRIVATE_KEY` | Firebase service account private key (PEM string) | *(optional in fake)* |
+| `FIREBASE_DATABASE_URL`| Firebase Realtime Database URL | `https://creatorhub-default-rtdb.firebaseio.com` |
+| `FIREBASE_SYNC_DEBOUNCE_MS`| Debounce window in ms for Firebase writes | `1000` |
 
 ### 3. Initialize Database, Run Migrations & Seed
 Run the all-in-one reset script (creates DB, runs migrations, seeds initial data):
@@ -130,7 +146,12 @@ The effective tier of any viewer requesting content by a specific creator is res
 | `npm run verify:graphql` | Runs comprehensive 69-check GraphQL verification suite |
 | `npm run verify:media` | Runs 50-check media uploads and paywall parity verification suite |
 | `npm run verify:security` | Runs 47-check security hardening and rate limit verification suite |
-| `npm run verify:all` | Runs all 6 platform verification suites in sequence (298 checks) |
+| `npm run verify:email` | Runs 33-check email outbox, new-post fan-out, and HMAC unsubscribe suite |
+| `npm run verify:firebase` | Runs 29-check Firebase Realtime synchronization, debouncing, and token suite |
+| `npm run verify:all` | Runs all 8 platform verification suites in sequence (360 checks) |
+| `npm run digest:run` | Runs weekly digest generator CLI (supports `--dry-run` and `--now=ISO`) |
+| `npm run email:status` | Inspects transactional email outbox status and queue counts |
+| `npm run firebase:resync` | Triggers full MySQL-to-Firebase subscriber count reconciliation |
 | `npm run sanitize:backfill` | Runs data sanitisation backfill (dry-run or `--apply`) |
 
 ---
@@ -226,6 +247,21 @@ All demo account passwords are: `Password123!`
   "updatedAt": "2026-10-28T05:00:00.000Z"
 }
 ```
+
+### Notification Preferences (v0.7)
+*Requires user authentication (`Authorization: Bearer <token>`).*
+- `GET /api/notifications/preferences` — Get notification preferences (`{ notifyNewPosts: boolean, notifyWeeklyDigest: boolean }`).
+- `PUT /api/notifications/preferences` — Update preferences. Body: `{ notifyNewPosts?: boolean, notifyWeeklyDigest?: boolean }`.
+
+### One-Click Unsubscribe (v0.7)
+*Public endpoints protected by HMAC-SHA256 signature verification and `unsubscribeLimiter` (10 req/15 min).*
+- `GET /api/email/unsubscribe?token=<hmac_token>` — Web confirmation page for email unsubscribe link.
+- `POST /api/email/unsubscribe?token=<hmac_token>` — RFC 8058 one-click unsubscribe action (List-Unsubscribe-Post).
+
+### Creator Dashboard & Firebase Metrics (v0.7)
+*Creator endpoints require `creator` role authentication.*
+- `GET /api/creators/me/firebase-token` — Mint short-lived Firebase custom auth token with claims `{ role: 'creator' }` for Realtime Database client subscriptions.
+- `GET /api/creators/me/dashboard/subscribers` — REST dashboard fallback returning active subscriber counts (`{ subscriberCount, byTier: { free, pro, vip } }`).
 
 ---
 
@@ -358,6 +394,8 @@ To run authenticated queries in Apollo Sandbox, add an HTTP Header at the bottom
 ## Architecture & Database Design
 For architectural specifications and security details, see:
 - [docs/DB-SCHEMA.md](docs/DB-SCHEMA.md) — Entity-Relationship diagrams, table schemas, indexes.
+- [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) — Transactional email outbox pattern, digest engine, HMAC unsubscribe tokens.
+- [docs/FIREBASE.md](docs/FIREBASE.md) — Firebase Realtime Database live subscriber metrics, write debouncing, security rules.
 - [docs/MEDIA.md](docs/MEDIA.md) — Media storage drivers, upload flow, signed URLs, paywall parity.
 - [docs/SECURITY.md](docs/SECURITY.md) — Security hardening, dual-class text policy, rate limits, CORS.
 - [docs/GRAPHQL.md](docs/GRAPHQL.md) — GraphQL schema, queries, cursor pagination.
