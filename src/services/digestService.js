@@ -148,7 +148,9 @@ async function runDigest({ now = new Date(), userId = null, dryRun = false } = {
     const dedupeKey = dedupeKeys.digest(user.id, isoWeek);
 
     if (dryRun) {
-      console.log(`[DigestService:DryRun] Would enqueue digest for ${user.email} (dedupeKey: ${dedupeKey}, posts: ${totalEligiblePosts})`);
+      console.log(
+        `[DigestService:DryRun] Would enqueue digest for ${user.email} (dedupeKey: ${dedupeKey}, posts: ${totalEligiblePosts})`
+      );
       enqueuedCount++;
     } else {
       const res = await outboxStore.enqueue({
@@ -185,4 +187,3 @@ module.exports = {
   formatWeekRange,
   runDigest
 };
-

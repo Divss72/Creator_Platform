@@ -7,6 +7,7 @@ This document provides the complete client contract for interacting with Creator
 ## 1. Connection & Handshake Authentication
 
 ### Transport & URL
+
 - Socket.io attaches to the HTTP API server on the same host and port (`PORT=5000`).
 - Connect using the standard Socket.io client:
   ```javascript
@@ -21,25 +22,29 @@ This document provides the complete client contract for interacting with Creator
 - **Security Rule**: Tokens are accepted strictly via `{ auth: { token } }`. Query string tokens (`?token=...`) are rejected to avoid appearing in server access logs.
 
 ### Handshake Authentication Rules
-| Auth State | Handshake Behavior | Privileges |
-| :--- | :--- | :--- |
-| **No token provided** | Allowed as `ANONYMOUS` | Read-only. Can join Free post rooms and view live chat & viewer counts. Cannot post comments. |
-| **Valid JWT provided** | Connected as authenticated user | Joins personal room `user:{id}`. Can post comments in any joined room where viewer has paywall access. |
-| **Malformed token** | Connection rejected with `INVALID_TOKEN` | Error message received in `connect_error`. |
-| **Expired token** | Connection rejected with `TOKEN_EXPIRED` | Error message received in `connect_error`. Client must refresh token. |
+
+| Auth State             | Handshake Behavior                       | Privileges                                                                                             |
+| :--------------------- | :--------------------------------------- | :----------------------------------------------------------------------------------------------------- |
+| **No token provided**  | Allowed as `ANONYMOUS`                   | Read-only. Can join Free post rooms and view live chat & viewer counts. Cannot post comments.          |
+| **Valid JWT provided** | Connected as authenticated user          | Joins personal room `user:{id}`. Can post comments in any joined room where viewer has paywall access. |
+| **Malformed token**    | Connection rejected with `INVALID_TOKEN` | Error message received in `connect_error`.                                                             |
+| **Expired token**      | Connection rejected with `TOKEN_EXPIRED` | Error message received in `connect_error`. Client must refresh token.                                  |
 
 ---
 
 ## 2. Event Contract
 
 Every client-to-server event uses an acknowledgement callback adhering to this shape:
+
 - **Success**: `{ ok: true, data: { ... } }`
 - **Failure**: `{ ok: false, error: { code: string, message: string, details?: object } }`
 
 ### Client -> Server Events
 
 #### `post:join`
+
 Join the real-time room for a specific post.
+
 - **Payload**:
   ```json
   {
@@ -67,7 +72,9 @@ Join the real-time room for a specific post.
 ---
 
 #### `post:leave`
+
 Leave a previously joined post room.
+
 - **Payload**:
   ```json
   {
@@ -89,7 +96,9 @@ Leave a previously joined post room.
 ---
 
 #### `comment:create`
+
 Post a new live comment to a room.
+
 - **Requirements**:
   1. Connected with an authenticated account.
   2. JWT token has not expired mid-session.
@@ -134,7 +143,9 @@ Post a new live comment to a room.
 ### Server -> Client Broadcast Events
 
 #### `comment:new`
+
 Broadcast to the entire room (`post:{contentId}`) when any viewer creates a comment, **including the sender**.
+
 - **Payload**:
   ```json
   {
@@ -154,7 +165,9 @@ Broadcast to the entire room (`post:{contentId}`) when any viewer creates a comm
 ---
 
 #### `viewers:update`
+
 Broadcast to the room (`post:{contentId}`) whenever the count of distinct viewers changes.
+
 - **Payload**:
   ```json
   {
@@ -167,7 +180,9 @@ Broadcast to the room (`post:{contentId}`) whenever the count of distinct viewer
 ---
 
 #### `access:revoked`
+
 Sent directly to an individual socket when their access to a post is revoked while sitting in an active room.
+
 - **Payload**:
   ```json
   {
@@ -180,7 +195,9 @@ Sent directly to an individual socket when their access to a post is revoked whi
 ---
 
 #### `post:deleted`
+
 Broadcast to all sockets in `post:{contentId}` when the post is deleted by its creator.
+
 - **Payload**:
   ```json
   {
@@ -223,15 +240,15 @@ sequenceDiagram
 
 ## 4. Error Codes Reference
 
-| Error Code | HTTP Status | Context | Description |
-| :--- | :--- | :--- | :--- |
-| `UNAUTHENTICATED` | 401 | Handshake / comment:create | Authentication required. Anonymous users cannot write comments. |
-| `INVALID_TOKEN` | 401 | Handshake | JWT signature is invalid or user record no longer exists. |
-| `TOKEN_EXPIRED` | 401 | Handshake / comment:create | JWT has expired. |
-| `TIER_REQUIRED` | 403 | REST History / post:join / comment:create | Higher tier subscription required. Details specify `requiredTier` and `viewerTier`. |
-| `NOT_FOUND` | 404 | REST History / post:join | Requested content ID does not exist. |
-| `VALIDATION_ERROR` | 400 | REST History / Sockets | Payload missing fields, body < 1 or > 1000 chars, or whitespace-only. |
-| `NOT_IN_ROOM` | 400 | comment:create | Must join the room via `post:join` before sending comments. |
-| `ROOM_LIMIT` | 429 | post:join | Exceeded maximum of 10 concurrently joined rooms per socket. |
-| `RATE_LIMITED` | 429 | comment:create | Exceeded limit of 5 comments per 10 seconds per socket. |
-| `INTERNAL_ERROR` | 500 | General | Unexpected internal server error. Raw error details are not leaked. |
+| Error Code         | HTTP Status | Context                                   | Description                                                                         |
+| :----------------- | :---------- | :---------------------------------------- | :---------------------------------------------------------------------------------- |
+| `UNAUTHENTICATED`  | 401         | Handshake / comment:create                | Authentication required. Anonymous users cannot write comments.                     |
+| `INVALID_TOKEN`    | 401         | Handshake                                 | JWT signature is invalid or user record no longer exists.                           |
+| `TOKEN_EXPIRED`    | 401         | Handshake / comment:create                | JWT has expired.                                                                    |
+| `TIER_REQUIRED`    | 403         | REST History / post:join / comment:create | Higher tier subscription required. Details specify `requiredTier` and `viewerTier`. |
+| `NOT_FOUND`        | 404         | REST History / post:join                  | Requested content ID does not exist.                                                |
+| `VALIDATION_ERROR` | 400         | REST History / Sockets                    | Payload missing fields, body < 1 or > 1000 chars, or whitespace-only.               |
+| `NOT_IN_ROOM`      | 400         | comment:create                            | Must join the room via `post:join` before sending comments.                         |
+| `ROOM_LIMIT`       | 429         | post:join                                 | Exceeded maximum of 10 concurrently joined rooms per socket.                        |
+| `RATE_LIMITED`     | 429         | comment:create                            | Exceeded limit of 5 comments per 10 seconds per socket.                             |
+| `INTERNAL_ERROR`   | 500         | General                                   | Unexpected internal server error. Raw error details are not leaked.                 |

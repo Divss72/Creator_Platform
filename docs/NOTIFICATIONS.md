@@ -1,6 +1,7 @@
 # Email Notifications & Outbox Subsystem (v0.7)
 
 ## Overview
+
 CreatorHub v0.7 introduces an asynchronous, transactional email notification subsystem built around the **Transactional Outbox Pattern**. All emails triggered by user events (subscriptions, published posts, weekly digests) are written to MySQL in the same transaction or immediately post-commit, guaranteeing zero data loss, decoupling API response times from SMTP latency, and enforcing strict side-effect isolation.
 
 ---
@@ -54,6 +55,7 @@ CreatorHub v0.7 introduces an asynchronous, transactional email notification sub
 ```
 
 ### Outbox State Machine
+
 - `pending`: Enqueued and waiting for worker claim.
 - `sending`: Claimed by a worker via `SELECT ... FOR UPDATE SKIP LOCKED`.
 - `sent`: Successfully delivered to mail transport.
@@ -65,12 +67,14 @@ CreatorHub v0.7 introduces an asynchronous, transactional email notification sub
 ## 2. Notification Types & Triggers
 
 ### A. Welcome Email
+
 - **Trigger**: New or reactivated subscription.
 - **Dedupe Key**: `welcome:${subscriberId}:${creatorId}:${tier}`
 - **Content**: Welcome greeting, creator name, subscribed tier badge, community guidelines.
 - **Headers**: RFC 8058 `List-Unsubscribe` and `List-Unsubscribe-Post`.
 
 ### B. New-Post Email Fan-Out
+
 - **Trigger**: Creator publishes a new post (`POST /api/content`).
 - **Fan-Out Loop**: Keyset pagination query (`WHERE subscriber_id > :lastId ORDER BY subscriber_id ASC LIMIT 100`) to prevent high memory usage.
 - **Eligibility**:
@@ -84,6 +88,7 @@ CreatorHub v0.7 introduces an asynchronous, transactional email notification sub
   - Clean subject line ($\le 150$ characters, stripped of CR/LF injection characters).
 
 ### C. Weekly Digest
+
 - **Trigger**: Scheduled cron job (`DIGEST_CRON`, default Mondays at 09:00 in `DIGEST_TIMEZONE`) or CLI command (`npm run digest:run`).
 - **Algorithm**:
   1. Finds all users with `notify_weekly_digest = true`.
@@ -98,10 +103,12 @@ CreatorHub v0.7 introduces an asynchronous, transactional email notification sub
 ## 3. Preferences & Unsubscribe Endpoints
 
 ### Preferences API
+
 - `GET /api/notifications/preferences`: Returns `{ notifyNewPosts: boolean, notifyWeeklyDigest: boolean }`.
 - `PUT /api/notifications/preferences`: Updates notification preferences.
 
 ### HMAC One-Click Unsubscribe
+
 - **Token Format**: `base64url(userId.type.expiresAt.signature)`
 - **HMAC Secret**: `EMAIL_TOKEN_SECRET` (minimum 32 characters in production).
 - **Public Endpoints**:
@@ -117,4 +124,3 @@ CreatorHub v0.7 introduces an asynchronous, transactional email notification sub
 - **Exponential Retry Delays**: Configured in `EMAIL_RETRY_DELAYS_SECONDS` (`60, 300, 900, 3600, 14400`).
 - **Stuck Row Recovery**: Rows stuck in `sending` state $> 5$ minutes (e.g. from container restart) are automatically reclaimed back to `pending`.
 - **Retention Purge**: Daily job purges `sent` records older than 30 days and `failed`/`skipped` records older than 60 days.
-

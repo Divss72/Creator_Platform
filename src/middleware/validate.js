@@ -12,7 +12,12 @@ const validate = (schema) => {
       }
 
       // If schema is a direct ZodType without body/query/params wrappers
-      if (typeof schema.parseAsync === 'function' && !schema.body && !schema.query && !schema.params) {
+      if (
+        typeof schema.parseAsync === 'function' &&
+        !schema.body &&
+        !schema.query &&
+        !schema.params
+      ) {
         req.body = await schema.parseAsync(req.body);
       }
 

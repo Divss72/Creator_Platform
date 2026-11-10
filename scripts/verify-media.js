@@ -82,7 +82,14 @@ async function run() {
     const subC = await login('subc.free@creatorhub.local');
 
     // Helper: Upload file via FormData
-    const uploadFile = async (endpoint, fileBuffer, fileName, mimeType, token, fieldName = 'file') => {
+    const uploadFile = async (
+      endpoint,
+      fileBuffer,
+      fileName,
+      mimeType,
+      token,
+      fieldName = 'file'
+    ) => {
       const formData = new FormData();
       const blob = new Blob([fileBuffer], { type: mimeType });
       formData.append(fieldName, blob, fileName);
@@ -110,7 +117,7 @@ async function run() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ title, body, minTier })
       });
@@ -123,7 +130,12 @@ async function run() {
     // -------------------------------------------------------------
     console.log('\n--- 1. Testing Upload Permissions and Role Checks ---');
 
-    const testPost = await createPost(alice.token, 'Media Test Post Alice', '<p>Test post with media</p>', 'free');
+    const testPost = await createPost(
+      alice.token,
+      'Media Test Post Alice',
+      '<p>Test post with media</p>',
+      'free'
+    );
 
     // Owner upload succeeds
     const ownerUpload = await uploadFile(
@@ -134,9 +146,18 @@ async function run() {
       alice.token
     );
     assert(ownerUpload.status === 201, 'Owner uploading valid PNG returns 201 Created');
-    assert(ownerUpload.data.media && ownerUpload.data.media.id, 'Response contains media object with ID');
-    assert(ownerUpload.data.media.url && ownerUpload.data.media.thumbnailUrl, 'Response contains signed delivery and thumbnail URLs');
-    assert(!ownerUpload.rawText.includes('public_id') && !ownerUpload.rawText.includes('publicId'), 'Security: Response does NOT leak public_id');
+    assert(
+      ownerUpload.data.media && ownerUpload.data.media.id,
+      'Response contains media object with ID'
+    );
+    assert(
+      ownerUpload.data.media.url && ownerUpload.data.media.thumbnailUrl,
+      'Response contains signed delivery and thumbnail URLs'
+    );
+    assert(
+      !ownerUpload.rawText.includes('public_id') && !ownerUpload.rawText.includes('publicId'),
+      'Security: Response does NOT leak public_id'
+    );
 
     // Another creator fails (403)
     const charlieUpload = await uploadFile(
@@ -146,7 +167,10 @@ async function run() {
       'image/png',
       charlie.token
     );
-    assert(charlieUpload.status === 403, 'Another creator uploading to Alice post returns 403 Forbidden');
+    assert(
+      charlieUpload.status === 403,
+      'Another creator uploading to Alice post returns 403 Forbidden'
+    );
 
     // Subscriber fails (403)
     const subUpload = await uploadFile(
@@ -191,8 +215,14 @@ async function run() {
       'image/png',
       alice.token
     );
-    assert(fakePngUpload.status === 415, 'Text file renamed to .png returns 415 UNSUPPORTED_MEDIA_TYPE');
-    assert(fakePngUpload.data.error.code === 'UNSUPPORTED_MEDIA_TYPE', 'Error code is UNSUPPORTED_MEDIA_TYPE');
+    assert(
+      fakePngUpload.status === 415,
+      'Text file renamed to .png returns 415 UNSUPPORTED_MEDIA_TYPE'
+    );
+    assert(
+      fakePngUpload.data.error.code === 'UNSUPPORTED_MEDIA_TYPE',
+      'Error code is UNSUPPORTED_MEDIA_TYPE'
+    );
 
     // SVG upload rejected
     const svgUpload = await uploadFile(
@@ -224,7 +254,10 @@ async function run() {
       alice.token,
       'wrong_field_name'
     );
-    assert(wrongFieldUpload.status === 400, 'Uploading with wrong field name returns 400 VALIDATION_ERROR');
+    assert(
+      wrongFieldUpload.status === 400,
+      'Uploading with wrong field name returns 400 VALIDATION_ERROR'
+    );
 
     // -------------------------------------------------------------
     // 3. Attachment Limits & Concurrency
@@ -232,17 +265,44 @@ async function run() {
     console.log('\n--- 3. Testing Attachment Limits & Atomic Concurrency ---');
 
     // testPost currently has 2 attachments. Add 2 more to reach 4.
-    await uploadFile(`/api/content/${testPost.id}/media`, VALID_PNG_BYTES, 'att3.png', 'image/png', alice.token);
-    await uploadFile(`/api/content/${testPost.id}/media`, VALID_PNG_BYTES, 'att4.png', 'image/png', alice.token);
+    await uploadFile(
+      `/api/content/${testPost.id}/media`,
+      VALID_PNG_BYTES,
+      'att3.png',
+      'image/png',
+      alice.token
+    );
+    await uploadFile(
+      `/api/content/${testPost.id}/media`,
+      VALID_PNG_BYTES,
+      'att4.png',
+      'image/png',
+      alice.token
+    );
 
     // Parallel upload of 2 items when 4 already exist -> exactly 1 succeeds, 1 gets MEDIA_LIMIT (409)
     const [race1, race2] = await Promise.all([
-      uploadFile(`/api/content/${testPost.id}/media`, VALID_PNG_BYTES, 'race1.png', 'image/png', alice.token),
-      uploadFile(`/api/content/${testPost.id}/media`, VALID_PNG_BYTES, 'race2.png', 'image/png', alice.token)
+      uploadFile(
+        `/api/content/${testPost.id}/media`,
+        VALID_PNG_BYTES,
+        'race1.png',
+        'image/png',
+        alice.token
+      ),
+      uploadFile(
+        `/api/content/${testPost.id}/media`,
+        VALID_PNG_BYTES,
+        'race2.png',
+        'image/png',
+        alice.token
+      )
     ]);
 
     const statuses = [race1.status, race2.status].sort();
-    assert(statuses[0] === 201 && statuses[1] === 409, 'Atomic limit: parallel uploads when 4 exist results in exactly one 201 and one 409 MEDIA_LIMIT');
+    assert(
+      statuses[0] === 201 && statuses[1] === 409,
+      'Atomic limit: parallel uploads when 4 exist results in exactly one 201 and one 409 MEDIA_LIMIT'
+    );
 
     // Attempting 6th attachment returns MEDIA_LIMIT (409)
     const sixthUpload = await uploadFile(
@@ -261,7 +321,12 @@ async function run() {
     console.log('\n--- 4. Testing Paywall on Media (Zero Leakage) ---');
 
     // Create a VIP post with media
-    const vipPost = await createPost(alice.token, 'VIP Media Post', '<p>Secret VIP post with attached media</p>', 'vip');
+    const vipPost = await createPost(
+      alice.token,
+      'VIP Media Post',
+      '<p>Secret VIP post with attached media</p>',
+      'vip'
+    );
     const vipMedia = await uploadFile(
       `/api/content/${vipPost.id}/media`,
       VALID_PNG_BYTES,
@@ -274,9 +339,18 @@ async function run() {
     // 4a. Anonymous viewer on VIP post
     const anonVipRest = await fetch(`${BASE_URL}/api/content/${vipPost.id}`).then((r) => r.json());
     assert(anonVipRest.content.locked === true, 'Anonymous viewing VIP post has locked: true');
-    assert(Array.isArray(anonVipRest.content.media) && anonVipRest.content.media.length === 0, 'Anonymous viewing locked VIP post receives media: []');
-    assert(anonVipRest.content.mediaCount === 1, 'Anonymous viewing locked VIP post sees mediaCount: 1');
-    assert(!JSON.stringify(anonVipRest).includes('fake-storage.creatorhub.local'), 'Security: Locked REST response contains zero media URLs');
+    assert(
+      Array.isArray(anonVipRest.content.media) && anonVipRest.content.media.length === 0,
+      'Anonymous viewing locked VIP post receives media: []'
+    );
+    assert(
+      anonVipRest.content.mediaCount === 1,
+      'Anonymous viewing locked VIP post sees mediaCount: 1'
+    );
+    assert(
+      !JSON.stringify(anonVipRest).includes('fake-storage.creatorhub.local'),
+      'Security: Locked REST response contains zero media URLs'
+    );
 
     // 4b. Subscriber B (Pro) on VIP post (locked)
     const proVipRest = await fetch(`${BASE_URL}/api/content/${vipPost.id}`, {
@@ -292,13 +366,19 @@ async function run() {
     }).then((r) => r.json());
     assert(vipSubRest.content.locked === false, 'VIP subscriber unlocks VIP post');
     assert(vipSubRest.content.media.length === 1, 'VIP subscriber receives full media list');
-    assert(vipSubRest.content.media[0].url && vipSubRest.content.media[0].thumbnailUrl, 'VIP subscriber receives signed URL and thumbnailUrl');
+    assert(
+      vipSubRest.content.media[0].url && vipSubRest.content.media[0].thumbnailUrl,
+      'VIP subscriber receives signed URL and thumbnailUrl'
+    );
 
     // 4d. Owner (Alice) sees own VIP post media
     const aliceVipRest = await fetch(`${BASE_URL}/api/content/${vipPost.id}`, {
       headers: { Authorization: `Bearer ${alice.token}` }
     }).then((r) => r.json());
-    assert(aliceVipRest.content.locked === false && aliceVipRest.content.media.length === 1, 'Owner sees own post media in full');
+    assert(
+      aliceVipRest.content.locked === false && aliceVipRest.content.media.length === 1,
+      'Owner sees own post media in full'
+    );
 
     // -------------------------------------------------------------
     // 5. GraphQL Media Support & REST Parity
@@ -333,24 +413,39 @@ async function run() {
       body: JSON.stringify({ query: gqlQuery, variables: { id: vipPost.id } })
     }).then((r) => r.json());
 
-    assert(anonGql.data.content.locked === true, 'GraphQL: Anonymous viewing VIP post has locked: true');
-    assert(anonGql.data.content.media.length === 0, 'GraphQL: Anonymous viewing VIP post receives media: []');
-    assert(anonGql.data.content.mediaCount === 1, 'GraphQL: Anonymous viewing VIP post sees mediaCount: 1');
-    assert(!JSON.stringify(anonGql).includes('fake-storage.creatorhub.local'), 'Security: GraphQL locked response leaks no media URLs');
+    assert(
+      anonGql.data.content.locked === true,
+      'GraphQL: Anonymous viewing VIP post has locked: true'
+    );
+    assert(
+      anonGql.data.content.media.length === 0,
+      'GraphQL: Anonymous viewing VIP post receives media: []'
+    );
+    assert(
+      anonGql.data.content.mediaCount === 1,
+      'GraphQL: Anonymous viewing VIP post sees mediaCount: 1'
+    );
+    assert(
+      !JSON.stringify(anonGql).includes('fake-storage.creatorhub.local'),
+      'Security: GraphQL locked response leaks no media URLs'
+    );
 
     // GraphQL VIP subscriber on VIP post
     const subAGql = await fetch(`${BASE_URL}/graphql`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${subA.token}`
+        Authorization: `Bearer ${subA.token}`
       },
       body: JSON.stringify({ query: gqlQuery, variables: { id: vipPost.id } })
     }).then((r) => r.json());
 
     assert(subAGql.data.content.locked === false, 'GraphQL: VIP subscriber unlocks VIP post');
     assert(subAGql.data.content.media.length === 1, 'GraphQL: VIP subscriber receives media');
-    assert(subAGql.data.content.media[0].id === vipSubRest.content.media[0].id, 'REST and GraphQL agree on media ID');
+    assert(
+      subAGql.data.content.media[0].id === vipSubRest.content.media[0].id,
+      'REST and GraphQL agree on media ID'
+    );
     assert(subAGql.data.content.media[0].kind === 'IMAGE', 'GraphQL returns MediaKind enum IMAGE');
 
     // -------------------------------------------------------------
@@ -364,7 +459,7 @@ async function run() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${throwaway.token}`
+        Authorization: `Bearer ${throwaway.token}`
       },
       body: JSON.stringify({ creatorId: alice.user.id, tier: 'vip' })
     });
@@ -372,7 +467,10 @@ async function run() {
     const unlockedBefore = await fetch(`${BASE_URL}/api/content/${vipPost.id}`, {
       headers: { Authorization: `Bearer ${throwaway.token}` }
     }).then((r) => r.json());
-    assert(unlockedBefore.content.locked === false && unlockedBefore.content.media.length === 1, 'New VIP subscriber unlocks VIP post media');
+    assert(
+      unlockedBefore.content.locked === false && unlockedBefore.content.media.length === 1,
+      'New VIP subscriber unlocks VIP post media'
+    );
 
     // Cancel subscription
     await fetch(`${BASE_URL}/api/subscriptions/${alice.user.id}`, {
@@ -383,7 +481,10 @@ async function run() {
     const lockedAfter = await fetch(`${BASE_URL}/api/content/${vipPost.id}`, {
       headers: { Authorization: `Bearer ${throwaway.token}` }
     }).then((r) => r.json());
-    assert(lockedAfter.content.locked === true && lockedAfter.content.media.length === 0, 'Cancelled subscriber is immediately locked out of media');
+    assert(
+      lockedAfter.content.locked === true && lockedAfter.content.media.length === 0,
+      'Cancelled subscriber is immediately locked out of media'
+    );
 
     // -------------------------------------------------------------
     // 7. Cleanup & Failure Handling
@@ -392,10 +493,13 @@ async function run() {
 
     // 7a. Delete single media item
     const mediaToDelete = vipMedia.data.media;
-    const deleteRes = await fetch(`${BASE_URL}/api/content/${vipPost.id}/media/${mediaToDelete.id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${alice.token}` }
-    });
+    const deleteRes = await fetch(
+      `${BASE_URL}/api/content/${vipPost.id}/media/${mediaToDelete.id}`,
+      {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${alice.token}` }
+      }
+    );
     assert(deleteRes.status === 204, 'Deleting single media item returns 204 No Content');
 
     const vipAfterDelete = await fetch(`${BASE_URL}/api/content/${vipPost.id}`, {
@@ -417,19 +521,42 @@ async function run() {
       'image/png',
       alice.token
     );
-    assert(failedUpload.status === 502, 'Simulated driver upload failure returns 502 UPLOAD_FAILED');
+    assert(
+      failedUpload.status === 502,
+      'Simulated driver upload failure returns 502 UPLOAD_FAILED'
+    );
     assert(failedUpload.data.error.code === 'UPLOAD_FAILED', 'Error code is UPLOAD_FAILED');
 
     // 7c. Post deletion cleans up attached assets
-    const cleanPost = await createPost(alice.token, 'Cleanup Post', '<p>Will be deleted</p>', 'free');
-    await uploadFile(`/api/content/${cleanPost.id}/media`, VALID_PNG_BYTES, 'clean1.png', 'image/png', alice.token);
-    await uploadFile(`/api/content/${cleanPost.id}/media`, VALID_PNG_BYTES, 'clean2.png', 'image/png', alice.token);
+    const cleanPost = await createPost(
+      alice.token,
+      'Cleanup Post',
+      '<p>Will be deleted</p>',
+      'free'
+    );
+    await uploadFile(
+      `/api/content/${cleanPost.id}/media`,
+      VALID_PNG_BYTES,
+      'clean1.png',
+      'image/png',
+      alice.token
+    );
+    await uploadFile(
+      `/api/content/${cleanPost.id}/media`,
+      VALID_PNG_BYTES,
+      'clean2.png',
+      'image/png',
+      alice.token
+    );
 
     const deletePostRes = await fetch(`${BASE_URL}/api/content/${cleanPost.id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${alice.token}` }
     });
-    assert(deletePostRes.status === 200, 'Deleting post returns 200 OK and cascades asset deletion');
+    assert(
+      deletePostRes.status === 200,
+      'Deleting post returns 200 OK and cascades asset deletion'
+    );
 
     // -------------------------------------------------------------
     // 8. Creator Profile Avatar
@@ -444,11 +571,19 @@ async function run() {
       alice.token
     );
     assert(avatarUploadRes.status === 200, 'Creator uploading avatar returns 200 OK');
-    assert(avatarUploadRes.data.avatarUrl && avatarUploadRes.data.avatarUrl.includes('fake-storage'), 'Avatar upload returns avatarUrl');
+    assert(
+      avatarUploadRes.data.avatarUrl && avatarUploadRes.data.avatarUrl.includes('fake-storage'),
+      'Avatar upload returns avatarUrl'
+    );
 
     // Public profile in REST includes avatarUrl
-    const creatorRest = await fetch(`${BASE_URL}/api/creators/${alice.user.id}`).then((r) => r.json());
-    assert(creatorRest.creator.avatarUrl === avatarUploadRes.data.avatarUrl, 'REST public profile includes avatarUrl');
+    const creatorRest = await fetch(`${BASE_URL}/api/creators/${alice.user.id}`).then((r) =>
+      r.json()
+    );
+    assert(
+      creatorRest.creator.avatarUrl === avatarUploadRes.data.avatarUrl,
+      'REST public profile includes avatarUrl'
+    );
 
     // Public profile in GraphQL includes avatarUrl
     const creatorGql = await fetch(`${BASE_URL}/graphql`, {
@@ -458,7 +593,10 @@ async function run() {
         query: `query { creator(id: "${alice.user.id}") { id displayName avatarUrl } }`
       })
     }).then((r) => r.json());
-    assert(creatorGql.data.creator.avatarUrl === avatarUploadRes.data.avatarUrl, 'GraphQL creator includes avatarUrl');
+    assert(
+      creatorGql.data.creator.avatarUrl === avatarUploadRes.data.avatarUrl,
+      'GraphQL creator includes avatarUrl'
+    );
 
     // Subscriber attempting avatar upload gets 403
     const subAvatar = await uploadFile(
@@ -469,7 +607,6 @@ async function run() {
       subA.token
     );
     assert(subAvatar.status === 403, 'Subscriber attempting avatar upload returns 403 Forbidden');
-
   } finally {
     await server.stop();
   }
@@ -495,7 +632,7 @@ async function run() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${loginRes.token}`
+        Authorization: `Bearer ${loginRes.token}`
       },
       body: JSON.stringify({ title: 'Quota Post', body: '<p>Testing quota</p>', minTier: 'free' })
     }).then((r) => r.json());
@@ -504,13 +641,19 @@ async function run() {
     const blob = new Blob([VALID_PNG_BYTES], { type: 'image/png' });
     formData.append('file', blob, 'quota.png');
 
-    const quotaUpload = await fetch(`${quotaServer.baseUrl}/api/content/${postRes.content.id}/media`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${loginRes.token}` },
-      body: formData
-    }).then((r) => r.json());
+    const quotaUpload = await fetch(
+      `${quotaServer.baseUrl}/api/content/${postRes.content.id}/media`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${loginRes.token}` },
+        body: formData
+      }
+    ).then((r) => r.json());
 
-    assert(quotaUpload.error && quotaUpload.error.code === 'QUOTA_EXCEEDED', 'Uploading beyond storage quota returns QUOTA_EXCEEDED (403)');
+    assert(
+      quotaUpload.error && quotaUpload.error.code === 'QUOTA_EXCEEDED',
+      'Uploading beyond storage quota returns QUOTA_EXCEEDED (403)'
+    );
   } finally {
     await quotaServer.stop();
   }
@@ -532,4 +675,3 @@ run().catch((err) => {
   console.error('[Fatal Test Runner Error]:', err);
   process.exit(1);
 });
-

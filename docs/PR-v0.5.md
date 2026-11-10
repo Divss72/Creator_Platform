@@ -1,6 +1,7 @@
 # Pull Request: v0.5 GraphQL Read-Only Content Feed & API
 
 ## Summary of Changes
+
 This PR implements **Version 0.5 (v0.5)** of the CreatorHub platform. It adds a read-only GraphQL API at `POST /graphql` on the same Express HTTP server and port, exposing the tiered content feed with keyset cursor pagination, flexible feed filters (by creator, tier, accessibility, and active subscriptions), single posts and creator profiles, platform tiers, and post comment histories. Writes remain strictly on REST and live chat on Socket.io. No database migrations were required.
 
 ---
@@ -75,6 +76,7 @@ This PR implements **Version 0.5 (v0.5)** of the CreatorHub platform. It adds a 
 ## How to Test
 
 ### 1. Run Automated Verifications
+
 ```bash
 # Reset database and seed demo dataset
 npm run db:reset
@@ -89,9 +91,11 @@ npm run verify:graphql
 npm run verify:paywall
 npm run verify:realtime
 ```
-*Expected: All 69 GraphQL checks pass, all 56 paywall checks pass, and all 65 realtime checks pass.*
+
+_Expected: All 69 GraphQL checks pass, all 56 paywall checks pass, and all 65 realtime checks pass._
 
 ### 2. Interactive Apollo Sandbox
+
 1. Start the server in development mode:
    ```bash
    npm run dev
@@ -132,10 +136,12 @@ npm run verify:realtime
      "Authorization": "Bearer <TOKEN>"
    }
    ```
-   *(Obtain tokens by calling `POST /api/auth/login` for demo accounts like `alice.creator@creatorhub.local` or `suba.vip@creatorhub.local` with password `Password123!`)*
+   _(Obtain tokens by calling `POST /api/auth/login` for demo accounts like `alice.creator@creatorhub.local` or `suba.vip@creatorhub.local` with password `Password123!`)_
 
 ### 3. Keyset Cursor Walk
+
 Query the next page using the `endCursor` from page 1:
+
 ```graphql
 query NextPage($after: String!) {
   feed(first: 5, after: $after) {

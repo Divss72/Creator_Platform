@@ -72,11 +72,17 @@ async function runVerification() {
   console.log('\n--- 1. Testing GET /api/tiers ---');
   const tiersRes = await api('/api/tiers');
   assert(tiersRes.status === 200, 'GET /api/tiers returns 200 OK');
-  assert(Array.isArray(tiersRes.data) && tiersRes.data.length === 3, 'GET /api/tiers returns 3 tiers');
   assert(
-    tiersRes.data[0].name === 'free' && tiersRes.data[0].rank === 0 &&
-    tiersRes.data[1].name === 'pro' && tiersRes.data[1].rank === 1 &&
-    tiersRes.data[2].name === 'vip' && tiersRes.data[2].rank === 2,
+    Array.isArray(tiersRes.data) && tiersRes.data.length === 3,
+    'GET /api/tiers returns 3 tiers'
+  );
+  assert(
+    tiersRes.data[0].name === 'free' &&
+      tiersRes.data[0].rank === 0 &&
+      tiersRes.data[1].name === 'pro' &&
+      tiersRes.data[1].rank === 1 &&
+      tiersRes.data[2].name === 'vip' &&
+      tiersRes.data[2].rank === 2,
     'Tiers are properly ranked: free (0) < pro (1) < vip (2)'
   );
 
@@ -96,81 +102,162 @@ async function runVerification() {
   const anonFree = await api(`/api/content/${aliceFreePostId}`);
   assert(anonFree.status === 200, 'Anonymous viewing free content returns 200');
   assert(anonFree.data.content.locked === false, 'Anonymous free content has locked: false');
-  assert(anonFree.data.content.body !== null && anonFree.data.content.excerpt, 'Anonymous free content has full body and excerpt');
+  assert(
+    anonFree.data.content.body !== null && anonFree.data.content.excerpt,
+    'Anonymous free content has full body and excerpt'
+  );
 
   const anonPro = await api(`/api/content/${aliceProPostId}`);
   assert(anonPro.status === 200, 'Anonymous viewing pro content returns 200 (preview)');
   assert(anonPro.data.content.locked === true, 'Anonymous pro content has locked: true');
   assert(anonPro.data.content.body === null, 'Anonymous pro content body is NULL');
   assert(Boolean(anonPro.data.content.excerpt), 'Anonymous pro content has non-empty excerpt');
-  assert(!anonPro.raw.includes(proSecretText), 'Security: Anonymous pro response contains NO trace of full body');
+  assert(
+    !anonPro.raw.includes(proSecretText),
+    'Security: Anonymous pro response contains NO trace of full body'
+  );
 
   const anonVip = await api(`/api/content/${aliceVipPostId}`);
-  assert(anonVip.status === 200 && anonVip.data.content.locked === true, 'Anonymous viewing VIP content has locked: true');
+  assert(
+    anonVip.status === 200 && anonVip.data.content.locked === true,
+    'Anonymous viewing VIP content has locked: true'
+  );
   assert(anonVip.data.content.body === null, 'Anonymous VIP content body is NULL');
-  assert(!anonVip.raw.includes(vipSecretText), 'Security: Anonymous VIP response contains NO trace of full body');
+  assert(
+    !anonVip.raw.includes(vipSecretText),
+    'Security: Anonymous VIP response contains NO trace of full body'
+  );
 
   // 4. Subscriber C (Unsubscribed) access
   console.log('\n--- 4. Testing Subscriber C (Unsubscribed) Access ---');
-  const subCFree = await api(`/api/content/${aliceFreePostId}`, { headers: { Authorization: `Bearer ${subCToken}` } });
-  assert(subCFree.data.content.locked === false && subCFree.data.content.body !== null, 'Subscriber C sees free content in full');
+  const subCFree = await api(`/api/content/${aliceFreePostId}`, {
+    headers: { Authorization: `Bearer ${subCToken}` }
+  });
+  assert(
+    subCFree.data.content.locked === false && subCFree.data.content.body !== null,
+    'Subscriber C sees free content in full'
+  );
 
-  const subCPro = await api(`/api/content/${aliceProPostId}`, { headers: { Authorization: `Bearer ${subCToken}` } });
-  assert(subCPro.data.content.locked === true && subCPro.data.content.body === null, 'Subscriber C is locked out of pro content');
+  const subCPro = await api(`/api/content/${aliceProPostId}`, {
+    headers: { Authorization: `Bearer ${subCToken}` }
+  });
+  assert(
+    subCPro.data.content.locked === true && subCPro.data.content.body === null,
+    'Subscriber C is locked out of pro content'
+  );
 
-  const subCVip = await api(`/api/content/${aliceVipPostId}`, { headers: { Authorization: `Bearer ${subCToken}` } });
-  assert(subCVip.data.content.locked === true && subCVip.data.content.body === null, 'Subscriber C is locked out of VIP content');
+  const subCVip = await api(`/api/content/${aliceVipPostId}`, {
+    headers: { Authorization: `Bearer ${subCToken}` }
+  });
+  assert(
+    subCVip.data.content.locked === true && subCVip.data.content.body === null,
+    'Subscriber C is locked out of VIP content'
+  );
 
   // 5. Subscriber B (Pro subscriber to Alice) access
   console.log('\n--- 5. Testing Subscriber B (Pro) Access ---');
-  const subBFree = await api(`/api/content/${aliceFreePostId}`, { headers: { Authorization: `Bearer ${subBToken}` } });
+  const subBFree = await api(`/api/content/${aliceFreePostId}`, {
+    headers: { Authorization: `Bearer ${subBToken}` }
+  });
   assert(subBFree.data.content.locked === false, 'Subscriber B unlocks free content');
 
-  const subBPro = await api(`/api/content/${aliceProPostId}`, { headers: { Authorization: `Bearer ${subBToken}` } });
-  assert(subBPro.data.content.locked === false && subBPro.data.content.body !== null, 'Subscriber B unlocks Pro content with full body');
+  const subBPro = await api(`/api/content/${aliceProPostId}`, {
+    headers: { Authorization: `Bearer ${subBToken}` }
+  });
+  assert(
+    subBPro.data.content.locked === false && subBPro.data.content.body !== null,
+    'Subscriber B unlocks Pro content with full body'
+  );
   assert(subBPro.data.content.viewerTier === 'pro', 'Subscriber B viewerTier is "pro"');
 
-  const subBVip = await api(`/api/content/${aliceVipPostId}`, { headers: { Authorization: `Bearer ${subBToken}` } });
-  assert(subBVip.data.content.locked === true && subBVip.data.content.body === null, 'Subscriber B is locked out of VIP content');
+  const subBVip = await api(`/api/content/${aliceVipPostId}`, {
+    headers: { Authorization: `Bearer ${subBToken}` }
+  });
+  assert(
+    subBVip.data.content.locked === true && subBVip.data.content.body === null,
+    'Subscriber B is locked out of VIP content'
+  );
 
   // 6. Subscriber A (VIP subscriber to Alice) access
   console.log('\n--- 6. Testing Subscriber A (VIP) Access ---');
-  const subAFree = await api(`/api/content/${aliceFreePostId}`, { headers: { Authorization: `Bearer ${subAToken}` } });
-  const subAPro = await api(`/api/content/${aliceProPostId}`, { headers: { Authorization: `Bearer ${subAToken}` } });
-  const subAVip = await api(`/api/content/${aliceVipPostId}`, { headers: { Authorization: `Bearer ${subAToken}` } });
+  const subAFree = await api(`/api/content/${aliceFreePostId}`, {
+    headers: { Authorization: `Bearer ${subAToken}` }
+  });
+  const subAPro = await api(`/api/content/${aliceProPostId}`, {
+    headers: { Authorization: `Bearer ${subAToken}` }
+  });
+  const subAVip = await api(`/api/content/${aliceVipPostId}`, {
+    headers: { Authorization: `Bearer ${subAToken}` }
+  });
 
-  assert(subAFree.data.content.locked === false && subAFree.data.content.body !== null, 'Subscriber A unlocks Free content');
-  assert(subAPro.data.content.locked === false && subAPro.data.content.body !== null, 'Subscriber A unlocks Pro content');
-  assert(subAVip.data.content.locked === false && subAVip.data.content.body !== null, 'Subscriber A unlocks VIP content');
+  assert(
+    subAFree.data.content.locked === false && subAFree.data.content.body !== null,
+    'Subscriber A unlocks Free content'
+  );
+  assert(
+    subAPro.data.content.locked === false && subAPro.data.content.body !== null,
+    'Subscriber A unlocks Pro content'
+  );
+  assert(
+    subAVip.data.content.locked === false && subAVip.data.content.body !== null,
+    'Subscriber A unlocks VIP content'
+  );
   assert(subAVip.data.content.viewerTier === 'vip', 'Subscriber A viewerTier is "vip"');
 
   // 7. Per-creator isolation check: Sub A viewing Charlie's content
   console.log('\n--- 7. Testing Per-Creator Subscription Isolation ---');
-  const subACharliePro = await api(`/api/content/${charlieProPostId}`, { headers: { Authorization: `Bearer ${subAToken}` } });
+  const subACharliePro = await api(`/api/content/${charlieProPostId}`, {
+    headers: { Authorization: `Bearer ${subAToken}` }
+  });
   assert(
     subACharliePro.data.content.locked === true && subACharliePro.data.content.body === null,
-    'Subscriber A (VIP to Alice) is LOCKED out of Charlie\'s Pro content (subscriptions are strictly per-creator)'
+    "Subscriber A (VIP to Alice) is LOCKED out of Charlie's Pro content (subscriptions are strictly per-creator)"
   );
-  assert(subACharliePro.data.content.viewerTier === 'free', 'Subscriber A effective tier for Charlie is "free"');
+  assert(
+    subACharliePro.data.content.viewerTier === 'free',
+    'Subscriber A effective tier for Charlie is "free"'
+  );
 
   // 8. Creator Ownership access
   console.log('\n--- 8. Testing Creator Ownership Access ---');
-  const aliceOwnVip = await api(`/api/content/${aliceVipPostId}`, { headers: { Authorization: `Bearer ${aliceToken}` } });
-  assert(aliceOwnVip.data.content.locked === false && aliceOwnVip.data.content.body !== null, 'Alice (Owner) sees all own VIP content in full');
+  const aliceOwnVip = await api(`/api/content/${aliceVipPostId}`, {
+    headers: { Authorization: `Bearer ${aliceToken}` }
+  });
+  assert(
+    aliceOwnVip.data.content.locked === false && aliceOwnVip.data.content.body !== null,
+    'Alice (Owner) sees all own VIP content in full'
+  );
 
-  const charlieAliceVip = await api(`/api/content/${aliceVipPostId}`, { headers: { Authorization: `Bearer ${charlieToken}` } });
-  assert(charlieAliceVip.data.content.locked === true && charlieAliceVip.data.content.body === null, 'Charlie (Other creator) is locked out of Alice\'s VIP content');
+  const charlieAliceVip = await api(`/api/content/${aliceVipPostId}`, {
+    headers: { Authorization: `Bearer ${charlieToken}` }
+  });
+  assert(
+    charlieAliceVip.data.content.locked === true && charlieAliceVip.data.content.body === null,
+    "Charlie (Other creator) is locked out of Alice's VIP content"
+  );
 
   // 9. Cancelled & Expired subscriptions behave like no subscription
   console.log('\n--- 9. Testing Cancelled & Expired Subscriptions ---');
-  const subDCharliePro = await api(`/api/content/${charlieProPostId}`, { headers: { Authorization: `Bearer ${subDToken}` } });
-  assert(subDCharliePro.data.content.locked === true, 'Subscriber D with cancelled subscription is locked out');
+  const subDCharliePro = await api(`/api/content/${charlieProPostId}`, {
+    headers: { Authorization: `Bearer ${subDToken}` }
+  });
+  assert(
+    subDCharliePro.data.content.locked === true,
+    'Subscriber D with cancelled subscription is locked out'
+  );
 
-  const subECharlieVip = await api(`/api/content/${charlieVipPostId}`, { headers: { Authorization: `Bearer ${subEToken}` } });
-  assert(subECharlieVip.data.content.locked === true, 'Subscriber E with expired subscription is locked out');
+  const subECharlieVip = await api(`/api/content/${charlieVipPostId}`, {
+    headers: { Authorization: `Bearer ${subEToken}` }
+  });
+  assert(
+    subECharlieVip.data.content.locked === true,
+    'Subscriber E with expired subscription is locked out'
+  );
 
   // 10. Dynamic subscription lifecycle flow for Subscriber C
-  console.log('\n--- 10. Testing Subscription Lifecycle (Subscribe, Idempotence, Upgrade, Cancel) ---');
+  console.log(
+    '\n--- 10. Testing Subscription Lifecycle (Subscribe, Idempotence, Upgrade, Cancel) ---'
+  );
 
   // Step A: Subscribe to Pro
   const subCreate = await api('/api/subscriptions', {
@@ -178,14 +265,30 @@ async function runVerification() {
     headers: { Authorization: `Bearer ${subCToken}` },
     body: { creatorId: aliceId, tier: 'pro' }
   });
-  assert(subCreate.status === 201, 'POST /api/subscriptions for new subscription returns 201 Created');
-  assert(subCreate.data.subscription.tier === 'pro' && subCreate.data.subscription.status === 'active', 'Subscription created with tier "pro"');
+  assert(
+    subCreate.status === 201,
+    'POST /api/subscriptions for new subscription returns 201 Created'
+  );
+  assert(
+    subCreate.data.subscription.tier === 'pro' && subCreate.data.subscription.status === 'active',
+    'Subscription created with tier "pro"'
+  );
 
   // Verify Pro unlocked, VIP locked
-  const subCProUnlocked = await api(`/api/content/${aliceProPostId}`, { headers: { Authorization: `Bearer ${subCToken}` } });
-  const subCVipLocked = await api(`/api/content/${aliceVipPostId}`, { headers: { Authorization: `Bearer ${subCToken}` } });
-  assert(subCProUnlocked.data.content.locked === false && subCProUnlocked.data.content.body !== null, 'Subscriber C now unlocks Alice Pro content');
-  assert(subCVipLocked.data.content.locked === true, 'Subscriber C still locked out of Alice VIP content');
+  const subCProUnlocked = await api(`/api/content/${aliceProPostId}`, {
+    headers: { Authorization: `Bearer ${subCToken}` }
+  });
+  const subCVipLocked = await api(`/api/content/${aliceVipPostId}`, {
+    headers: { Authorization: `Bearer ${subCToken}` }
+  });
+  assert(
+    subCProUnlocked.data.content.locked === false && subCProUnlocked.data.content.body !== null,
+    'Subscriber C now unlocks Alice Pro content'
+  );
+  assert(
+    subCVipLocked.data.content.locked === true,
+    'Subscriber C still locked out of Alice VIP content'
+  );
 
   // Step B: Idempotent subscribe to Pro again
   const subIdempotent = await api('/api/subscriptions', {
@@ -193,7 +296,10 @@ async function runVerification() {
     headers: { Authorization: `Bearer ${subCToken}` },
     body: { creatorId: aliceId, tier: 'pro' }
   });
-  assert(subIdempotent.status === 200, 'Subscribing twice at the same tier returns 200 OK (idempotent, no duplicate)');
+  assert(
+    subIdempotent.status === 200,
+    'Subscribing twice at the same tier returns 200 OK (idempotent, no duplicate)'
+  );
 
   // Step C: Upgrade to VIP
   const subUpgrade = await api('/api/subscriptions', {
@@ -205,8 +311,13 @@ async function runVerification() {
   assert(subUpgrade.data.subscription.tier === 'vip', 'Subscription tier upgraded to "vip"');
 
   // Verify VIP unlocked
-  const subCVipUnlocked = await api(`/api/content/${aliceVipPostId}`, { headers: { Authorization: `Bearer ${subCToken}` } });
-  assert(subCVipUnlocked.data.content.locked === false && subCVipUnlocked.data.content.body !== null, 'Subscriber C now unlocks Alice VIP content');
+  const subCVipUnlocked = await api(`/api/content/${aliceVipPostId}`, {
+    headers: { Authorization: `Bearer ${subCToken}` }
+  });
+  assert(
+    subCVipUnlocked.data.content.locked === false && subCVipUnlocked.data.content.body !== null,
+    'Subscriber C now unlocks Alice VIP content'
+  );
 
   // Step D: Cancel subscription
   const subCancel = await api(`/api/subscriptions/${aliceId}`, {
@@ -214,11 +325,19 @@ async function runVerification() {
     headers: { Authorization: `Bearer ${subCToken}` }
   });
   assert(subCancel.status === 200, 'DELETE /api/subscriptions/:creatorId returns 200 OK');
-  assert(subCancel.data.subscription.status === 'cancelled', 'Subscription status updated to "cancelled"');
+  assert(
+    subCancel.data.subscription.status === 'cancelled',
+    'Subscription status updated to "cancelled"'
+  );
 
   // Verify immediate access revocation
-  const subCProRelocked = await api(`/api/content/${aliceProPostId}`, { headers: { Authorization: `Bearer ${subCToken}` } });
-  assert(subCProRelocked.data.content.locked === true && subCProRelocked.data.content.body === null, 'After cancellation, Subscriber C is immediately locked out of Pro content');
+  const subCProRelocked = await api(`/api/content/${aliceProPostId}`, {
+    headers: { Authorization: `Bearer ${subCToken}` }
+  });
+  assert(
+    subCProRelocked.data.content.locked === true && subCProRelocked.data.content.body === null,
+    'After cancellation, Subscriber C is immediately locked out of Pro content'
+  );
 
   // 11. Subscription endpoint validation & negative rules
   console.log('\n--- 11. Testing Subscription Validation & Security Rules ---');
@@ -274,8 +393,14 @@ async function runVerification() {
     headers: { Authorization: `Bearer ${subAToken}` }
   });
   assert(mySubs.status === 200, 'GET /api/subscriptions/me returns 200');
-  assert(Array.isArray(mySubs.data.subscriptions) && mySubs.data.subscriptions.length >= 1, 'Returns list of user subscriptions');
-  assert(mySubs.data.subscriptions[0].creator && mySubs.data.subscriptions[0].creator.displayName, 'Includes creator display name');
+  assert(
+    Array.isArray(mySubs.data.subscriptions) && mySubs.data.subscriptions.length >= 1,
+    'Returns list of user subscriptions'
+  );
+  assert(
+    mySubs.data.subscriptions[0].creator && mySubs.data.subscriptions[0].creator.displayName,
+    'Includes creator display name'
+  );
 
   // 13. Bulk feed query efficiency (no N+1)
   console.log('\n--- 13. Testing Bulk Feed Query Efficiency ---');
@@ -283,14 +408,26 @@ async function runVerification() {
     headers: { Authorization: `Bearer ${subBToken}` }
   });
   assert(feed.status === 200, 'GET /api/content feed returns 200');
-  assert(Array.isArray(feed.data.items) && feed.data.items.length >= 6, 'Feed returns all seeded content items');
+  assert(
+    Array.isArray(feed.data.items) && feed.data.items.length >= 6,
+    'Feed returns all seeded content items'
+  );
 
   const proItemInFeed = feed.data.items.find((item) => item.id === aliceProPostId);
   const vipItemInFeed = feed.data.items.find((item) => item.id === aliceVipPostId);
 
-  assert(proItemInFeed && proItemInFeed.locked === false && proItemInFeed.body !== null, 'Feed Pro item is unlocked for Subscriber B');
-  assert(vipItemInFeed && vipItemInFeed.locked === true && vipItemInFeed.body === null, 'Feed VIP item is locked for Subscriber B');
-  assert(vipItemInFeed && Boolean(vipItemInFeed.excerpt), 'Feed locked item retains excerpt preview');
+  assert(
+    proItemInFeed && proItemInFeed.locked === false && proItemInFeed.body !== null,
+    'Feed Pro item is unlocked for Subscriber B'
+  );
+  assert(
+    vipItemInFeed && vipItemInFeed.locked === true && vipItemInFeed.body === null,
+    'Feed VIP item is locked for Subscriber B'
+  );
+  assert(
+    vipItemInFeed && Boolean(vipItemInFeed.excerpt),
+    'Feed locked item retains excerpt preview'
+  );
 
   console.log(`\n================================================================`);
   console.log(`🎉 ALL ${passed} VERIFICATION CHECKS PASSED! (Failed: ${failed})`);

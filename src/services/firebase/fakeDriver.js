@@ -132,10 +132,12 @@ class FakeFirebaseDriver {
         exp: Math.floor(Date.now() / 1000) + 3600
       })
     ).toString('base64url');
-    const sig = crypto.createHmac('sha256', 'fake-firebase-secret').update(`${header}.${payload}`).digest('base64url');
+    const sig = crypto
+      .createHmac('sha256', 'fake-firebase-secret')
+      .update(`${header}.${payload}`)
+      .digest('base64url');
     return `${header}.${payload}.${sig}`;
   }
 }
 
 module.exports = new FakeFirebaseDriver();
-

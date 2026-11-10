@@ -35,7 +35,13 @@ const corsOptions = {
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Authorization', 'Content-Type'],
-  exposedHeaders: ['X-Debug-Query-Count', 'RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset', 'Retry-After'],
+  exposedHeaders: [
+    'X-Debug-Query-Count',
+    'RateLimit-Limit',
+    'RateLimit-Remaining',
+    'RateLimit-Reset',
+    'Retry-After'
+  ],
   credentials: false, // We use Bearer tokens, not cookies
   maxAge: 600 // 10 minutes preflight cache
 };

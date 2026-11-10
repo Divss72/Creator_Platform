@@ -109,9 +109,7 @@ const buildContext = async ({ req }) => {
   let tierRankMapPromise = null;
   const getTierRankMap = async () => {
     if (!tierRankMapPromise) {
-      tierRankMapPromise = getTiers().then(
-        (tiers) => new Map(tiers.map((t) => [t.name, t.rank]))
-      );
+      tierRankMapPromise = getTiers().then((tiers) => new Map(tiers.map((t) => [t.name, t.rank])));
     }
     return tierRankMapPromise;
   };

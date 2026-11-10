@@ -28,7 +28,9 @@ const bioSchema = z
       });
     }
   })
-  .transform((val) => cleanPlainText(val, { maxLength: 500, fieldName: 'Bio', allowNewlines: true }));
+  .transform((val) =>
+    cleanPlainText(val, { maxLength: 500, fieldName: 'Bio', allowNewlines: true })
+  );
 
 const updateProfileSchema = {
   body: z

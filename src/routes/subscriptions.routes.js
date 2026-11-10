@@ -5,10 +5,7 @@ const subscriptionsController = require('../controllers/subscriptions.controller
 const requireAuth = require('../middleware/requireAuth');
 const requireRole = require('../middleware/requireRole');
 const validate = require('../middleware/validate');
-const {
-  subscribeSchema,
-  creatorIdParamSchema
-} = require('../validators/subscriptions.validator');
+const { subscribeSchema, creatorIdParamSchema } = require('../validators/subscriptions.validator');
 const asyncHandler = require('../utils/asyncHandler');
 const { userWritesLimiter } = require('../middleware/rateLimiters');
 
@@ -21,9 +18,19 @@ router.use(requireAuth, requireRole('subscriber'));
 router.get('/me', asyncHandler(subscriptionsController.getMySubscriptions));
 
 // Subscribe / upgrade / downgrade / reactivate
-router.post('/', userWritesLimiter, validate(subscribeSchema), asyncHandler(subscriptionsController.subscribe));
+router.post(
+  '/',
+  userWritesLimiter,
+  validate(subscribeSchema),
+  asyncHandler(subscriptionsController.subscribe)
+);
 
 // Cancel subscription to a specific creator
-router.delete('/:creatorId', userWritesLimiter, validate(creatorIdParamSchema), asyncHandler(subscriptionsController.cancelSubscription));
+router.delete(
+  '/:creatorId',
+  userWritesLimiter,
+  validate(creatorIdParamSchema),
+  asyncHandler(subscriptionsController.cancelSubscription)
+);
 
 module.exports = router;

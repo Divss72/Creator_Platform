@@ -46,11 +46,11 @@ app.use(globalLimiter);
 
 // Root health check endpoint - reports server status and db connectivity
 app.get('/health', async (req, res) => {
-  let dbStatus = 'down';
+  let dbStatus;
   try {
     await sequelize.authenticate();
     dbStatus = 'up';
-  } catch (err) {
+  } catch (_err) {
     dbStatus = 'down';
   }
 
@@ -87,7 +87,9 @@ if (isDev) {
         storageDriver.failNext(op);
         return res.json({ status: 'ok', scheduledFailure: op });
       }
-      res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'Fake driver failure hook not available' } });
+      res.status(400).json({
+        error: { code: 'BAD_REQUEST', message: 'Fake driver failure hook not available' }
+      });
     });
   }
 
@@ -102,7 +104,9 @@ if (isDev) {
 
   app.get('/dev/mail/:id/html', (req, res) => {
     const sent = logDriver.getSent();
-    const item = sent.find((m) => m.messageId === req.params.id || m.messageId === `<${req.params.id}>`);
+    const item = sent.find(
+      (m) => m.messageId === req.params.id || m.messageId === `<${req.params.id}>`
+    );
     if (!item || !item.html) {
       return res.status(404).send('Email or HTML preview not found');
     }
@@ -169,7 +173,10 @@ app.graphqlRouter = graphqlRouter;
 
 // In development, hook query counter on REST API routes and set X-Debug-Query-Count header
 if (isDev) {
-  const { queryCounterMiddleware, queryCounterStorage } = require('./graphql/plugins/queryCountPlugin');
+  const {
+    queryCounterMiddleware,
+    queryCounterStorage
+  } = require('./graphql/plugins/queryCountPlugin');
   app.use('/api', queryCounterMiddleware, (req, res, next) => {
     const originalEnd = res.end;
     res.end = function (...args) {

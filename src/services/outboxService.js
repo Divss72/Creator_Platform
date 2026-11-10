@@ -68,7 +68,10 @@ function verifyUnsubscribeToken(token) {
     const sigBuffer = Buffer.from(sig);
     const expectedBuffer = Buffer.from(expectedSig);
 
-    if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
+    if (
+      sigBuffer.length !== expectedBuffer.length ||
+      !crypto.timingSafeEqual(sigBuffer, expectedBuffer)
+    ) {
       return { valid: false };
     }
 
@@ -191,4 +194,3 @@ module.exports = {
   calculateNextAttempt,
   processOutboxRow
 };
-

@@ -380,7 +380,11 @@ const subscriptionStore = {
 
     return subs.map((s) => ({
       creatorId: s.creatorId,
-      creatorName: s.creator ? (s.creator.profile ? s.creator.profile.displayName : s.creator.name) : 'Creator',
+      creatorName: s.creator
+        ? s.creator.profile
+          ? s.creator.profile.displayName
+          : s.creator.name
+        : 'Creator',
       tierName: s.tier ? s.tier.name : 'free',
       tierRank: s.tier ? s.tier.rank : 0
     }));

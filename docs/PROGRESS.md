@@ -3,6 +3,7 @@
 ## Version Progress
 
 ### v0.1: Skeleton + Auth (Completed)
+
 - [x] Implementation plan approved
 - [x] Project setup & environment configuration
 - [x] Error handling & utilities
@@ -16,6 +17,7 @@
 - [x] `README.md` and `docs/PR-v0.1.md`
 
 ### v0.2: MySQL + Sequelize (Completed)
+
 - [x] Implementation plan approved
 - [x] Installed `sequelize`, `mysql2`, `sequelize-cli` with `.sequelizerc` and `docker-compose.yml`
 - [x] Database configuration in `src/config/database.js` and validated env variables
@@ -35,12 +37,14 @@
 - [x] Updated `README.md`, `requests.http`, and `docs/PR-v0.2.md`
 
 #### Notes & Decisions (v0.2):
+
 - Kept UUID primary keys (`CHAR(36)`) consistent with v0.1, preserving existing API contracts and route parameter validations.
 - Controllers remain 100% decoupled from Sequelize ORM models; all database logic is encapsulated within `src/store/`.
 - Full schema created for `subscriptions` and `comments` in advance of v0.3 and v0.4 features.
 - Running `npm run db:reset` drops, recreates, migrates, and seeds the entire database idempotently.
 
 ### v0.3: Subscriptions + Paywall (Completed)
+
 - [x] Implementation plan approved
 - [x] Tier repository and store caching in `src/store/tierStore.js`
 - [x] Public `GET /api/tiers` endpoint returning dynamic ranks and pricing
@@ -59,12 +63,14 @@
 - [x] Documentation updated: `README.md`, `requests.http`, `docs/PROGRESS.md`, `docs/PR-v0.3.md`
 
 #### Notes & Decisions (v0.3):
+
 - **Access Rule Decoupling**: All tier resolution and paywall evaluation logic is fully isolated in `src/services/accessService.js` with pure functions, ready for reuse in v0.4 (Socket.io) and v0.5 (GraphQL).
 - **Single-Query Bulk Lookups**: Content feed loads viewer active subscriptions across all post creators using a single `WHERE subscriber_id = :viewerId AND creator_id IN (:creatorIds)` query mapped into a `Map<creatorId, Subscription>`, completely preventing N+1 queries.
 - **Paywall Response Contract**: A locked item detail request returns `200 OK` (not `403` or `402`), enabling clients to display rich teaser previews and upgrade prompts.
 - **Strict UUID Hex Format**: Seeded IDs conform strictly to RFC 4122 hexadecimal UUID format (`[0-9a-f]`) to pass Zod validation across all endpoints.
 
 ### v0.4: Realtime Socket.io & Live Chat (Completed)
+
 - [x] Implementation plan approved
 - [x] Installed `socket.io` and dev-dependency `socket.io-client`
 - [x] Added `CORS_ORIGIN` env variable with production wildcard restriction (`*` allowed in development only)
@@ -89,12 +95,14 @@
 - [x] Full documentation: `docs/REALTIME.md`, `README.md`, `requests.http`, `docs/PR-v0.4.md`
 
 #### Notes & Decisions (v0.4):
+
 - **Distinct Presence Counting**: Presence tracks `Map<contentId, Map<viewerKey, Set<socketId>>>` in memory. An authenticated user opening multiple browser tabs counts as a single viewer and only decrements when their final tab leaves.
 - **Single Write Path**: Comment writes occur strictly over Socket.io (`comment:create`). REST only exposes read access via `GET /api/content/:id/comments`.
 - **Zero Leakage**: Sockets and REST endpoints serialize comments using a strict allow-list: `{ id, contentId, body, createdAt, user: { id, name, role } }`.
 - **Safe Facade**: REST controllers never import Socket.io directly; all realtime notifications pass through `src/realtime/events.js` and cannot crash HTTP requests.
 
 ### v0.5: GraphQL Read-Only API (Completed)
+
 - [x] Implementation plan approved
 - [x] Installed `@apollo/server` v5, `@as-integrations/express4`, `graphql`, and `dataloader`
 - [x] Extracted shared serialization presenter `src/presenters/contentPresenter.js` (`formatContentItem`, `generateExcerpt`)
@@ -122,15 +130,15 @@
 - [x] Updated `README.md`, `docs/PROGRESS.md`, and prepared `docs/PR-v0.5.md`
 
 #### Notes & Decisions (v0.5):
+
 - **Shared Content Presenter**: Extracted `src/presenters/contentPresenter.js` so REST and GraphQL share identical serialization and preview generation logic. REST and GraphQL can never drift apart on paywall shapes.
 - **SQL-Level Access Filtering**: The `accessibleOnly` feed filter is resolved at the database query level via `accessProfile` (`owner OR free OR active_creator_subscription`), ensuring pages are never short and keyset cursors stay stable.
 - **Keyset Cursor Pagination**: Implemented `(created_at, id) < cursor` keyset pagination ordered newest first (`created_at DESC, id DESC`). No `OFFSET` is used; pages fetch `first + 1` rows to determine `hasNextPage` and return opaque base64 cursors.
 - **Constant SQL Query Count**: Feed query executes 1 query for content rows, 1 batched query for creator profiles (via `creatorLoader`), 1 batched query for comment counts (via `commentCountLoader`), and 1 optional count query if `totalCount` is selected. Query count is O(1) regardless of `first` page size.
 - **Production Hardening**: In production (`NODE_ENV=production`), Apollo introspection is rejected, `extensions.queryCount` is omitted, stack traces are masked, and Apollo Sandbox landing page is disabled.
 
-
-
 ### v0.6: Media + Security Hardening (Completed)
+
 - [x] Implementation plan approved
 - [x] Installed `cloudinary`, `multer`, `sanitize-html`, `express-rate-limit`, `helmet`, and `file-type@16.5.4` (CommonJS)
 - [x] Database migrations: `20261104000001-create-media` (`media` table) and `20261104000002-add-avatar-public-id-to-creator-profiles` (`avatar_public_id` column)
@@ -154,12 +162,14 @@
 - [x] Built unified test runner `scripts/verify-all.js` (all 6 platform test suites passed cleanly: 298/298 checks)
 
 #### Notes & Decisions (v0.6):
+
 - **Authenticated Cloudinary Delivery**: Post media is never stored publicly; uploaded under `type: 'authenticated'` with ephemeral signed URLs generated on the fly.
 - **Paywall Parity on Media**: When a post is locked, `media` is `[]`, `mediaCount` is visible, and Cloudinary `public_id` is never revealed to any client.
 - **Atomic Concurrency Protection**: Multi-attachment limits ($\le 5$) and creator storage quotas ($\le 200$ MB) are guarded with database transactions and `SELECT ... FOR UPDATE` row locks to prevent race condition over-allocation.
 - **Dual-Class Text Safety**: Distinguishes rich-text (post bodies, sanitized via `sanitize-html`) from plain-text (titles, names, comments, bios, which strictly reject tag-like syntax while permitting mathematical symbols like `<3` and `<`).
 
 ### v0.7: Email + Firebase Subscriptions Mirror (Completed)
+
 - [x] Implementation plan approved
 - [x] Installed `nodemailer`, `node-cron`, and `firebase-admin`
 - [x] Database migrations: `20261109000001-add-notification-preferences-to-users` (`notify_new_posts`, `notify_weekly_digest`) and `20261109000002-create-email-outbox` (`email_outbox` table)
@@ -187,9 +197,9 @@
 - [x] Full documentation: `docs/NOTIFICATIONS.md`, `docs/FIREBASE.md`, `docs/PR-v0.7.md`, updated `docs/DB-SCHEMA.md`, `docs/SECURITY.md`, `README.md`, `requests.http`
 
 #### Notes & Decisions (v0.7):
+
 - **Side-Effect Isolation**: Email enqueuing and Firebase synchronization run strictly as asynchronous side effects. Failures in SMTP or Firebase never roll back database transactions or fail client REST/GraphQL/Socket requests.
 - **Transactional Outbox & Send-Time Checks**: Emails are persisted into the `email_outbox` table. Before sending, the worker re-evaluates the recipient's tier access; if the subscription was cancelled in the interim, the email is skipped with reason `access_revoked`, preventing body/excerpt leakage.
 - **Zero Raw Body Leakage**: New post notifications use sanitized plain-text excerpts derived via `sanitizeService`, never raw HTML or secret post bodies.
 - **Write Debouncing & Coalescing**: Rapid bursts of subscription changes are coalesced within a configurable debounce buffer (`FIREBASE_SYNC_DEBOUNCE_MS`, default 1000ms), writing to Firebase Realtime Database at most once per debounce window per creator.
 - **Stateless HMAC Unsubscribe**: One-click unsubscribe links and headers use HMAC-SHA256 signatures with 30-day expiration, eliminating the need for separate unsubscribe database tables.
-

@@ -7,7 +7,9 @@ const express = require('express');
 const { ApolloServer } = require('@apollo/server');
 const { expressMiddleware } = require('@as-integrations/express4');
 const { ApolloServerPluginDrainHttpServer } = require('@apollo/server/plugin/drainHttpServer');
-const { ApolloServerPluginLandingPageLocalDefault } = require('@apollo/server/plugin/landingPage/default');
+const {
+  ApolloServerPluginLandingPageLocalDefault
+} = require('@apollo/server/plugin/landingPage/default');
 const { ApolloServerPluginLandingPageDisabled } = require('@apollo/server/plugin/disabled');
 
 const typeDefs = fs.readFileSync(path.join(__dirname, 'schema.graphql'), 'utf8');
@@ -31,9 +33,7 @@ const env = require('../config/env');
 const attachGraphQL = async (router, httpServer) => {
   const isDev = env.NODE_ENV === 'development';
 
-  const plugins = [
-    ApolloServerPluginDrainHttpServer({ httpServer })
-  ];
+  const plugins = [ApolloServerPluginDrainHttpServer({ httpServer })];
 
   if (isDev) {
     plugins.push(ApolloServerPluginLandingPageLocalDefault({ embed: true }));

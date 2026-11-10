@@ -49,7 +49,9 @@ class MediaService {
     // 2. Sniff content bytes
     const sniffed = await this.sniffFile(file.path);
     if (!sniffed || !sniffed.mime) {
-      throw ApiError.unsupportedMediaType('Unsupported media type: could not determine file format');
+      throw ApiError.unsupportedMediaType(
+        'Unsupported media type: could not determine file format'
+      );
     }
 
     const sniffedMime = sniffed.mime.toLowerCase();
@@ -68,10 +70,14 @@ class MediaService {
     const isVideo = ALLOWED_VIDEO_TYPES.includes(declaredMime);
 
     if (isImage && !ALLOWED_IMAGE_TYPES.includes(sniffedMime)) {
-      throw ApiError.unsupportedMediaType('Mismatch between declared file type and actual file contents');
+      throw ApiError.unsupportedMediaType(
+        'Mismatch between declared file type and actual file contents'
+      );
     }
     if (isVideo && !ALLOWED_VIDEO_TYPES.includes(sniffedMime)) {
-      throw ApiError.unsupportedMediaType('Mismatch between declared file type and actual file contents');
+      throw ApiError.unsupportedMediaType(
+        'Mismatch between declared file type and actual file contents'
+      );
     }
 
     // 3. File size limits
@@ -218,7 +224,11 @@ class MediaService {
           type: 'authenticated'
         });
       } catch (err) {
-        console.error('[Post Media Cleanup Error] Failed to destroy asset %s:', item.publicId, err.message);
+        console.error(
+          '[Post Media Cleanup Error] Failed to destroy asset %s:',
+          item.publicId,
+          err.message
+        );
       }
     }
   }
@@ -238,7 +248,11 @@ class MediaService {
     }
 
     const sniffed = await this.sniffFile(file.path);
-    if (!sniffed || !ALLOWED_IMAGE_TYPES.includes(sniffed.mime.toLowerCase()) || sniffed.mime.includes('svg')) {
+    if (
+      !sniffed ||
+      !ALLOWED_IMAGE_TYPES.includes(sniffed.mime.toLowerCase()) ||
+      sniffed.mime.includes('svg')
+    ) {
       throw ApiError.unsupportedMediaType('Unsupported or corrupted image file for avatar');
     }
 
@@ -285,7 +299,10 @@ class MediaService {
           type: 'upload'
         });
       } catch (err) {
-        console.warn('[Avatar Replacement] Could not destroy old avatar asset:', updateResult.oldAvatarPublicId);
+        console.warn(
+          '[Avatar Replacement] Could not destroy old avatar asset:',
+          updateResult.oldAvatarPublicId
+        );
       }
     }
 
@@ -330,4 +347,3 @@ class MediaService {
 }
 
 module.exports = new MediaService();
-

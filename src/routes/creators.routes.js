@@ -8,7 +8,11 @@ const requireRole = require('../middleware/requireRole');
 const validate = require('../middleware/validate');
 const { updateProfileSchema } = require('../validators/creators.validator');
 const asyncHandler = require('../utils/asyncHandler');
-const { userWritesLimiter, mediaUploadLimiter, firebaseTokenLimiter } = require('../middleware/rateLimiters');
+const {
+  userWritesLimiter,
+  mediaUploadLimiter,
+  firebaseTokenLimiter
+} = require('../middleware/rateLimiters');
 const { avatarUpload } = require('../middleware/upload');
 
 const router = Router();

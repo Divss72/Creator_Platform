@@ -11,7 +11,9 @@ async function runPurge() {
       failedRetentionDays: 60
     });
     if (deletedSent > 0 || deletedFailed > 0) {
-      console.log(`[PurgeJob] Purged ${deletedSent} sent and ${deletedFailed} failed/skipped outbox records.`);
+      console.log(
+        `[PurgeJob] Purged ${deletedSent} sent and ${deletedFailed} failed/skipped outbox records.`
+      );
     }
   } catch (err) {
     console.error('[PurgeJob] Error during outbox purge:', err.message);
@@ -36,4 +38,3 @@ module.exports = {
   stopPurgeJob,
   runPurge
 };
-

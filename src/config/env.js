@@ -75,7 +75,12 @@ const envSchema = z.object({
   EMAIL_RETRY_DELAYS_SECONDS: z
     .string()
     .default('60,300,900,3600,14400')
-    .transform((val) => val.split(',').map((s) => parseInt(s.trim(), 10)).filter(Boolean)),
+    .transform((val) =>
+      val
+        .split(',')
+        .map((s) => parseInt(s.trim(), 10))
+        .filter(Boolean)
+    ),
   EMAIL_TOKEN_SECRET: z.string().default(DEFAULT_EXAMPLE_EMAIL_TOKEN_SECRET),
 
   // Digest Cron & Timezone
@@ -119,14 +124,18 @@ if (!cron.validate(env.DIGEST_CRON)) {
 try {
   Intl.DateTimeFormat(undefined, { timeZone: env.DIGEST_TIMEZONE });
 } catch (err) {
-  console.error(`[Fatal Error] DIGEST_TIMEZONE ("${env.DIGEST_TIMEZONE}") is not a valid IANA timezone.`);
+  console.error(
+    `[Fatal Error] DIGEST_TIMEZONE ("${env.DIGEST_TIMEZONE}") is not a valid IANA timezone.`
+  );
   process.exit(1);
 }
 
 // Global Validation: Firebase credentials required if driver is 'firebase'
 if (env.FIREBASE_DRIVER === 'firebase') {
   if (!env.FIREBASE_DATABASE_URL) {
-    console.error('[Fatal Error] FIREBASE_DATABASE_URL is required when FIREBASE_DRIVER is "firebase".');
+    console.error(
+      '[Fatal Error] FIREBASE_DATABASE_URL is required when FIREBASE_DRIVER is "firebase".'
+    );
     process.exit(1);
   }
   const hasServiceAccount = Boolean(
@@ -135,7 +144,9 @@ if (env.FIREBASE_DRIVER === 'firebase') {
     env.GOOGLE_APPLICATION_CREDENTIALS
   );
   if (!hasServiceAccount) {
-    console.error('[Fatal Error] Firebase service account credentials are required when FIREBASE_DRIVER is "firebase".');
+    console.error(
+      '[Fatal Error] Firebase service account credentials are required when FIREBASE_DRIVER is "firebase".'
+    );
     process.exit(1);
   }
 }
@@ -143,9 +154,13 @@ if (env.FIREBASE_DRIVER === 'firebase') {
 // Strict Production Startup Checks
 if (env.NODE_ENV === 'production') {
   // 1. CORS_ORIGIN check
-  const origins = env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean);
+  const origins = env.CORS_ORIGIN.split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
   if (origins.length === 0 || origins.includes('*') || !env.CORS_ORIGIN.trim()) {
-    console.error('[Fatal Error] CORS_ORIGIN cannot be empty or contain wildcard ("*") in production mode.');
+    console.error(
+      '[Fatal Error] CORS_ORIGIN cannot be empty or contain wildcard ("*") in production mode.'
+    );
     process.exit(1);
   }
 
@@ -167,32 +182,44 @@ if (env.NODE_ENV === 'production') {
     process.exit(1);
   }
   if (env.JWT_SECRET === DEFAULT_EXAMPLE_JWT_SECRET) {
-    console.error('[Fatal Error] JWT_SECRET cannot be the default example value in production mode.');
+    console.error(
+      '[Fatal Error] JWT_SECRET cannot be the default example value in production mode.'
+    );
     process.exit(1);
   }
 
   // 5. EMAIL_TOKEN_SECRET check
   if (env.EMAIL_TOKEN_SECRET.length < 32) {
-    console.error('[Fatal Error] EMAIL_TOKEN_SECRET must be at least 32 characters in production mode.');
+    console.error(
+      '[Fatal Error] EMAIL_TOKEN_SECRET must be at least 32 characters in production mode.'
+    );
     process.exit(1);
   }
   if (env.EMAIL_TOKEN_SECRET === DEFAULT_EXAMPLE_EMAIL_TOKEN_SECRET) {
-    console.error('[Fatal Error] EMAIL_TOKEN_SECRET cannot be the default example value in production mode.');
+    console.error(
+      '[Fatal Error] EMAIL_TOKEN_SECRET cannot be the default example value in production mode.'
+    );
     process.exit(1);
   }
 
   // 6. MAIL_DRIVER check: if smtp, credentials required
   if (env.MAIL_DRIVER === 'smtp') {
     if (!env.SMTP_HOST) {
-      console.error('[Fatal Error] SMTP_HOST is required when MAIL_DRIVER is "smtp" in production mode.');
+      console.error(
+        '[Fatal Error] SMTP_HOST is required when MAIL_DRIVER is "smtp" in production mode.'
+      );
       process.exit(1);
     }
     if (!env.SMTP_PORT) {
-      console.error('[Fatal Error] SMTP_PORT is required when MAIL_DRIVER is "smtp" in production mode.');
+      console.error(
+        '[Fatal Error] SMTP_PORT is required when MAIL_DRIVER is "smtp" in production mode.'
+      );
       process.exit(1);
     }
     if (!env.EMAIL_FROM && !env.MAIL_FROM) {
-      console.error('[Fatal Error] EMAIL_FROM is required when MAIL_DRIVER is "smtp" in production mode.');
+      console.error(
+        '[Fatal Error] EMAIL_FROM is required when MAIL_DRIVER is "smtp" in production mode.'
+      );
       process.exit(1);
     }
   }
@@ -200,7 +227,9 @@ if (env.NODE_ENV === 'production') {
   // 7. FIREBASE_DRIVER check: if firebase, URL and credentials required
   if (env.FIREBASE_DRIVER === 'firebase') {
     if (!env.FIREBASE_DATABASE_URL) {
-      console.error('[Fatal Error] FIREBASE_DATABASE_URL is required when FIREBASE_DRIVER is "firebase" in production mode.');
+      console.error(
+        '[Fatal Error] FIREBASE_DATABASE_URL is required when FIREBASE_DRIVER is "firebase" in production mode.'
+      );
       process.exit(1);
     }
     const hasServiceAccount = Boolean(
@@ -209,7 +238,9 @@ if (env.NODE_ENV === 'production') {
       env.GOOGLE_APPLICATION_CREDENTIALS
     );
     if (!hasServiceAccount) {
-      console.error('[Fatal Error] Firebase service account credentials are required when FIREBASE_DRIVER is "firebase" in production mode.');
+      console.error(
+        '[Fatal Error] Firebase service account credentials are required when FIREBASE_DRIVER is "firebase" in production mode.'
+      );
       process.exit(1);
     }
   }

@@ -15,7 +15,14 @@ const { escapeHtml, cleanSubject } = require('./welcome.template');
  * @param {string} params.unsubscribeUrl
  * @returns {{ subject: string, html: string, text: string, headers: Object }}
  */
-function renderNewPostEmail({ subscriberName, creatorName, postTitle, postExcerpt, postUrl, unsubscribeUrl }) {
+function renderNewPostEmail({
+  subscriberName,
+  creatorName,
+  postTitle,
+  postExcerpt,
+  postUrl,
+  unsubscribeUrl
+}) {
   const safeSubName = escapeHtml(subscriberName || 'Subscriber');
   const safeCreatorName = escapeHtml(creatorName || 'Creator');
   const safePostTitle = escapeHtml(postTitle || 'Untitled Post');
@@ -23,7 +30,9 @@ function renderNewPostEmail({ subscriberName, creatorName, postTitle, postExcerp
   const safePostUrl = escapeHtml(postUrl);
   const safeUnsub = escapeHtml(unsubscribeUrl);
 
-  const subject = cleanSubject(`New post from ${creatorName || 'Creator'}: ${postTitle || 'Untitled'}`);
+  const subject = cleanSubject(
+    `New post from ${creatorName || 'Creator'}: ${postTitle || 'Untitled'}`
+  );
 
   const html = `<!DOCTYPE html>
 <html>
@@ -83,4 +92,3 @@ To manage your notification preferences or unsubscribe: ${unsubscribeUrl}
 module.exports = {
   renderNewPostEmail
 };
-

@@ -1,7 +1,9 @@
 # Pull Request: v0.7 - Email Notifications & Firebase Live Subscriber Count
 
 ## Summary
+
 Implements Version 7 (v0.7) of CreatorHub:
+
 1. **Email Subsystem**:
    - Transactional Outbox pattern via `email_outbox` table with `dedupe_key` uniqueness constraint.
    - Welcome email on subscription creation and reactivation.
@@ -24,6 +26,7 @@ Implements Version 7 (v0.7) of CreatorHub:
 ---
 
 ## Changes
+
 - **Database**:
   - Migration `20261109000001-add-notification-preferences-to-users.js`: Adds `notify_new_posts` and `notify_weekly_digest` boolean columns to `users`.
   - Migration `20261109000002-create-email-outbox.js`: Creates `email_outbox` table with status and deduplication indexes.
@@ -53,5 +56,5 @@ Implements Version 7 (v0.7) of CreatorHub:
 ---
 
 ## Verification
-All 8 verification suites run and pass sequentially via `npm run verify:all`.
 
+All 8 verification suites run and pass sequentially via `npm run verify:all`.

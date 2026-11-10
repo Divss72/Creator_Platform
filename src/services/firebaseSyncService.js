@@ -93,7 +93,10 @@ class FirebaseSyncService {
         return payload;
       } catch (err) {
         if (attempt >= maxRetries) {
-          console.error(`[FirebaseSync] Failed to sync creator ${creatorId} after ${maxRetries} attempts:`, err.message);
+          console.error(
+            `[FirebaseSync] Failed to sync creator ${creatorId} after ${maxRetries} attempts:`,
+            err.message
+          );
           return null;
         }
         // Exponential backoff
@@ -104,4 +107,3 @@ class FirebaseSyncService {
 }
 
 module.exports = new FirebaseSyncService();
-

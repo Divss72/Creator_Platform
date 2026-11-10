@@ -156,13 +156,23 @@ async function runVerification() {
   anonSocket.close();
 
   const malformedErr = await connectAndExpectError('malformed.jwt.token');
-  assert(malformedErr === 'INVALID_TOKEN', `Malformed token rejected with INVALID_TOKEN (got: ${malformedErr})`);
+  assert(
+    malformedErr === 'INVALID_TOKEN',
+    `Malformed token rejected with INVALID_TOKEN (got: ${malformedErr})`
+  );
 
-  const expiredToken = jwt.sign({ sub: 'a1111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa', role: 'creator' }, JWT_SECRET, {
-    expiresIn: '0s'
-  });
+  const expiredToken = jwt.sign(
+    { sub: 'a1111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa', role: 'creator' },
+    JWT_SECRET,
+    {
+      expiresIn: '0s'
+    }
+  );
   const expiredErr = await connectAndExpectError(expiredToken);
-  assert(expiredErr === 'TOKEN_EXPIRED', `Expired token rejected with TOKEN_EXPIRED (got: ${expiredErr})`);
+  assert(
+    expiredErr === 'TOKEN_EXPIRED',
+    `Expired token rejected with TOKEN_EXPIRED (got: ${expiredErr})`
+  );
 
   // 3. Joining Rooms & Paywall Enforcement Tests
   console.log('\n--- 3. Testing Room Joining & Paywall Rules ---');
@@ -177,7 +187,10 @@ async function runVerification() {
 
   // Anonymous on Pro post -> TIER_REQUIRED
   const anonJoinPro = await emitAck(anonClient, 'post:join', { contentId: aliceProPostId });
-  assert(anonJoinPro.ok === false && anonJoinPro.error.code === 'TIER_REQUIRED', 'Anonymous locked out of Pro post');
+  assert(
+    anonJoinPro.ok === false && anonJoinPro.error.code === 'TIER_REQUIRED',
+    'Anonymous locked out of Pro post'
+  );
   assert(
     anonJoinPro.error.details && anonJoinPro.error.details.requiredTier === 'pro',
     'TIER_REQUIRED includes requiredTier details'
@@ -185,32 +198,52 @@ async function runVerification() {
 
   // Anonymous on VIP post -> TIER_REQUIRED
   const anonJoinVip = await emitAck(anonClient, 'post:join', { contentId: aliceVipPostId });
-  assert(anonJoinVip.ok === false && anonJoinVip.error.code === 'TIER_REQUIRED', 'Anonymous locked out of VIP post');
+  assert(
+    anonJoinVip.ok === false && anonJoinVip.error.code === 'TIER_REQUIRED',
+    'Anonymous locked out of VIP post'
+  );
 
   // Subscriber C (no active subscription)
   const subCSocket = createSocket(subCToken);
   await waitForConnect(subCSocket);
   const subCJoinFree = await emitAck(subCSocket, 'post:join', { contentId: aliceFreePostId });
-  assert(subCJoinFree.ok === true && subCJoinFree.data.canComment === true, 'Subscriber C joins Free post with canComment: true');
+  assert(
+    subCJoinFree.ok === true && subCJoinFree.data.canComment === true,
+    'Subscriber C joins Free post with canComment: true'
+  );
   const subCJoinPro = await emitAck(subCSocket, 'post:join', { contentId: aliceProPostId });
-  assert(subCJoinPro.ok === false && subCJoinPro.error.code === 'TIER_REQUIRED', 'Subscriber C locked out of Pro post');
+  assert(
+    subCJoinPro.ok === false && subCJoinPro.error.code === 'TIER_REQUIRED',
+    'Subscriber C locked out of Pro post'
+  );
 
   // Subscriber B (Pro to Alice)
   const subBSocket = createSocket(subBToken);
   await waitForConnect(subBSocket);
   const subBJoinPro = await emitAck(subBSocket, 'post:join', { contentId: aliceProPostId });
-  assert(subBJoinPro.ok === true && subBJoinPro.data.canComment === true, 'Subscriber B (Pro) joins Alice Pro post');
+  assert(
+    subBJoinPro.ok === true && subBJoinPro.data.canComment === true,
+    'Subscriber B (Pro) joins Alice Pro post'
+  );
   const subBJoinVip = await emitAck(subBSocket, 'post:join', { contentId: aliceVipPostId });
-  assert(subBJoinVip.ok === false && subBJoinVip.error.code === 'TIER_REQUIRED', 'Subscriber B (Pro) locked out of Alice VIP post');
+  assert(
+    subBJoinVip.ok === false && subBJoinVip.error.code === 'TIER_REQUIRED',
+    'Subscriber B (Pro) locked out of Alice VIP post'
+  );
 
   // Subscriber A (VIP to Alice)
   const subASocket = createSocket(subAToken);
   await waitForConnect(subASocket);
   const subAJoinAliceVip = await emitAck(subASocket, 'post:join', { contentId: aliceVipPostId });
-  assert(subAJoinAliceVip.ok === true && subAJoinAliceVip.data.canComment === true, 'Subscriber A (VIP) joins Alice VIP post');
+  assert(
+    subAJoinAliceVip.ok === true && subAJoinAliceVip.data.canComment === true,
+    'Subscriber A (VIP) joins Alice VIP post'
+  );
 
   // Per-creator isolation: Subscriber A (VIP to Alice) cannot join Charlie Pro post
-  const subAJoinCharliePro = await emitAck(subASocket, 'post:join', { contentId: charlieProPostId });
+  const subAJoinCharliePro = await emitAck(subASocket, 'post:join', {
+    contentId: charlieProPostId
+  });
   assert(
     subAJoinCharliePro.ok === false && subAJoinCharliePro.error.code === 'TIER_REQUIRED',
     'Per-creator isolation: Alice VIP subscriber is denied joining Charlie Pro post'
@@ -220,28 +253,47 @@ async function runVerification() {
   const aliceSocket = createSocket(aliceToken);
   await waitForConnect(aliceSocket);
   const aliceJoinOwnVip = await emitAck(aliceSocket, 'post:join', { contentId: aliceVipPostId });
-  assert(aliceJoinOwnVip.ok === true && aliceJoinOwnVip.data.canComment === true, 'Alice (Owner) can join her own VIP post');
+  assert(
+    aliceJoinOwnVip.ok === true && aliceJoinOwnVip.data.canComment === true,
+    'Alice (Owner) can join her own VIP post'
+  );
 
   // Other creator: Charlie cannot join Alice VIP post
   const charlieSocket = createSocket(charlieToken);
   await waitForConnect(charlieSocket);
-  const charlieJoinAliceVip = await emitAck(charlieSocket, 'post:join', { contentId: aliceVipPostId });
-  assert(charlieJoinAliceVip.ok === false && charlieJoinAliceVip.error.code === 'TIER_REQUIRED', 'Charlie cannot join Alice VIP post');
+  const charlieJoinAliceVip = await emitAck(charlieSocket, 'post:join', {
+    contentId: aliceVipPostId
+  });
+  assert(
+    charlieJoinAliceVip.ok === false && charlieJoinAliceVip.error.code === 'TIER_REQUIRED',
+    'Charlie cannot join Alice VIP post'
+  );
 
   // Cancelled & Expired subscriptions
   const subDSocket = createSocket(subDToken);
   await waitForConnect(subDSocket);
   const subDJoin = await emitAck(subDSocket, 'post:join', { contentId: charlieProPostId });
-  assert(subDJoin.ok === false && subDJoin.error.code === 'TIER_REQUIRED', 'Cancelled subscription treated as no subscription');
+  assert(
+    subDJoin.ok === false && subDJoin.error.code === 'TIER_REQUIRED',
+    'Cancelled subscription treated as no subscription'
+  );
 
   const subESocket = createSocket(subEToken);
   await waitForConnect(subESocket);
   const subEJoin = await emitAck(subESocket, 'post:join', { contentId: charlieVipPostId });
-  assert(subEJoin.ok === false && subEJoin.error.code === 'TIER_REQUIRED', 'Expired subscription treated as no subscription');
+  assert(
+    subEJoin.ok === false && subEJoin.error.code === 'TIER_REQUIRED',
+    'Expired subscription treated as no subscription'
+  );
 
   // Unknown post ID -> NOT_FOUND
-  const notFoundJoin = await emitAck(aliceSocket, 'post:join', { contentId: '00000000-0000-0000-0000-000000000000' });
-  assert(notFoundJoin.ok === false && notFoundJoin.error.code === 'NOT_FOUND', 'Unknown post ID returns NOT_FOUND');
+  const notFoundJoin = await emitAck(aliceSocket, 'post:join', {
+    contentId: '00000000-0000-0000-0000-000000000000'
+  });
+  assert(
+    notFoundJoin.ok === false && notFoundJoin.error.code === 'NOT_FOUND',
+    'Unknown post ID returns NOT_FOUND'
+  );
 
   // Idempotent join
   const dupJoin = await emitAck(aliceSocket, 'post:join', { contentId: aliceVipPostId });
@@ -269,13 +321,22 @@ async function runVerification() {
   assert(commentAck.ok === true, 'VIP comment:create acknowledged successfully');
   assert(commentAck.data.comment.body === commentText, 'Ack contains persisted comment');
   assert(commentAck.data.comment.user.role === 'subscriber', 'Comment user object contains role');
-  assert(commentAck.data.comment.user.email === undefined, 'Security: Comment user does NOT contain email');
+  assert(
+    commentAck.data.comment.user.email === undefined,
+    'Security: Comment user does NOT contain email'
+  );
 
   const aliceReceived = await aliceReceivePromise;
-  assert(aliceReceived.id === commentAck.data.comment.id, 'Comment broadcast arrives at other socket in room (Alice)');
+  assert(
+    aliceReceived.id === commentAck.data.comment.id,
+    'Comment broadcast arrives at other socket in room (Alice)'
+  );
 
   const subAReceived = await subAReceivePromise;
-  assert(subAReceived.id === commentAck.data.comment.id, 'Comment broadcast arrives at sender socket (Subscriber A)');
+  assert(
+    subAReceived.id === commentAck.data.comment.id,
+    'Comment broadcast arrives at sender socket (Subscriber A)'
+  );
 
   await sleep(100);
   assert(otherRoomReceived === false, 'Socket in different room does NOT receive comment:new');
@@ -293,33 +354,48 @@ async function runVerification() {
     contentId: aliceFreePostId,
     body: 'Anonymous message attempt'
   });
-  assert(anonComment.ok === false && anonComment.error.code === 'UNAUTHENTICATED', 'Anonymous comment rejected with UNAUTHENTICATED');
+  assert(
+    anonComment.ok === false && anonComment.error.code === 'UNAUTHENTICATED',
+    'Anonymous comment rejected with UNAUTHENTICATED'
+  );
 
   // Commenting without joining room -> NOT_IN_ROOM
   const notInRoomComment = await emitAck(subCSocket, 'comment:create', {
     contentId: aliceProPostId,
     body: 'Trying to comment without joining'
   });
-  assert(notInRoomComment.ok === false && notInRoomComment.error.code === 'NOT_IN_ROOM', 'Commenting without joining room returns NOT_IN_ROOM');
+  assert(
+    notInRoomComment.ok === false && notInRoomComment.error.code === 'NOT_IN_ROOM',
+    'Commenting without joining room returns NOT_IN_ROOM'
+  );
 
   // Body validations
   const emptyComment = await emitAck(subASocket, 'comment:create', {
     contentId: aliceVipPostId,
     body: ''
   });
-  assert(emptyComment.ok === false && emptyComment.error.code === 'VALIDATION_ERROR', 'Empty comment body rejected with VALIDATION_ERROR');
+  assert(
+    emptyComment.ok === false && emptyComment.error.code === 'VALIDATION_ERROR',
+    'Empty comment body rejected with VALIDATION_ERROR'
+  );
 
   const whitespaceComment = await emitAck(subASocket, 'comment:create', {
     contentId: aliceVipPostId,
     body: '     \n  \t  '
   });
-  assert(whitespaceComment.ok === false && whitespaceComment.error.code === 'VALIDATION_ERROR', 'Whitespace-only comment rejected with VALIDATION_ERROR');
+  assert(
+    whitespaceComment.ok === false && whitespaceComment.error.code === 'VALIDATION_ERROR',
+    'Whitespace-only comment rejected with VALIDATION_ERROR'
+  );
 
   const tooLongComment = await emitAck(subASocket, 'comment:create', {
     contentId: aliceVipPostId,
     body: 'x'.repeat(1001)
   });
-  assert(tooLongComment.ok === false && tooLongComment.error.code === 'VALIDATION_ERROR', '1001-char comment rejected with VALIDATION_ERROR');
+  assert(
+    tooLongComment.ok === false && tooLongComment.error.code === 'VALIDATION_ERROR',
+    '1001-char comment rejected with VALIDATION_ERROR'
+  );
 
   // Rate limiting burst test: send 20 comments in a burst
   console.log('\n--- Testing Anti-Spam Rate Limiting ---');
@@ -333,7 +409,10 @@ async function runVerification() {
       rateLimitedCount++;
     }
   }
-  assert(rateLimitedCount > 0, `Burst of 20 comments triggers RATE_LIMITED (rate limited count: ${rateLimitedCount})`);
+  assert(
+    rateLimitedCount > 0,
+    `Burst of 20 comments triggers RATE_LIMITED (rate limited count: ${rateLimitedCount})`
+  );
 
   // Mid-session token expiry test
   console.log('\n--- Testing Mid-Session Token Expiration ---');
@@ -405,14 +484,23 @@ async function runVerification() {
   });
 
   const j3 = await emitAck(vc3, 'post:join', { contentId: testPostId });
-  assert(j3.data.viewerCount === 2, 'Same user opening second tab -> viewerCount remains 2 (distinct)');
+  assert(
+    j3.data.viewerCount === 2,
+    'Same user opening second tab -> viewerCount remains 2 (distinct)'
+  );
   await sleep(100);
-  assert(duplicateCountUpdate === false, 'viewers:update is NOT emitted when count does not change');
+  assert(
+    duplicateCountUpdate === false,
+    'viewers:update is NOT emitted when count does not change'
+  );
 
   // User 1 closes first tab
   vc1.close();
   await sleep(100);
-  assert(duplicateCountUpdate === false, 'Viewer count stays 2 while user still has second tab open');
+  assert(
+    duplicateCountUpdate === false,
+    'Viewer count stays 2 while user still has second tab open'
+  );
 
   // User 1 closes second tab
   let countDropped = false;
@@ -582,10 +670,15 @@ async function runVerification() {
   const anonHist = await api(`/api/content/${aliceFreePostId}/comments?limit=2`);
   assert(anonHist.status === 200, 'Anonymous can read history on FREE post (200 OK)');
   assert(anonHist.data.items.length === 2, 'History paginates with limit (returned 2 items)');
-  assert(Boolean(anonHist.data.nextBefore), 'Returns nextBefore cursor ID when more comments exist');
+  assert(
+    Boolean(anonHist.data.nextBefore),
+    'Returns nextBefore cursor ID when more comments exist'
+  );
 
   // Next page using cursor
-  const page2Hist = await api(`/api/content/${aliceFreePostId}/comments?limit=2&before=${anonHist.data.nextBefore}`);
+  const page2Hist = await api(
+    `/api/content/${aliceFreePostId}/comments?limit=2&before=${anonHist.data.nextBefore}`
+  );
   assert(page2Hist.status === 200, 'History pagination with before cursor returns 200 OK');
   assert(page2Hist.data.items.length >= 1, 'Cursor pagination retrieves older items');
 
@@ -599,7 +692,10 @@ async function runVerification() {
     headers: { Authorization: `Bearer ${subCToken}` }
   });
   assert(lockedHist.status === 403, 'Locked post history returns 403 Forbidden');
-  assert(lockedHist.data.error.code === 'TIER_REQUIRED', 'Locked post history error code is TIER_REQUIRED');
+  assert(
+    lockedHist.data.error.code === 'TIER_REQUIRED',
+    'Locked post history error code is TIER_REQUIRED'
+  );
   assert(
     lockedHist.data.error.details && lockedHist.data.error.details.requiredTier === 'vip',
     'Locked post history includes requiredTier in details'

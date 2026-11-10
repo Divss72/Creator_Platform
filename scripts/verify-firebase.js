@@ -139,7 +139,9 @@ async function run() {
     );
 
     // Verify MySQL agreement
-    const mysqlCounts = await subscriptionStore.countActiveByCreatorGroupedByTier(alice.data.user.id);
+    const mysqlCounts = await subscriptionStore.countActiveByCreatorGroupedByTier(
+      alice.data.user.id
+    );
     assert(
       aliceStats.subscriberCount === mysqlCounts.total,
       'Firebase subscriber count matches MySQL total active count exactly'
@@ -169,10 +171,7 @@ async function run() {
       aliceStats.subscriberCount === initialTotal + 1,
       'Upgrading tier keeps total subscriber count unchanged'
     );
-    assert(
-      aliceStats.byTier.vip > 0,
-      'Firebase byTier.vip incremented on upgrade'
-    );
+    assert(aliceStats.byTier.vip > 0, 'Firebase byTier.vip incremented on upgrade');
 
     // Sub C cancels subscription
     const cancelRes = await fetch(`${BASE_URL}/api/subscriptions/${alice.data.user.id}`, {
@@ -240,29 +239,47 @@ async function run() {
     });
     assert(tokenRes.status === 200, 'Creator GET /api/creators/me/firebase-token returns 200');
     const tokenData = await tokenRes.json();
-    assert(typeof tokenData.token === 'string' && tokenData.token.length > 20, 'Response contains valid custom token');
-    assert(tokenData.path === `creatorStats/${alice.data.user.id}`, 'Response specifies correct database path');
+    assert(
+      typeof tokenData.token === 'string' && tokenData.token.length > 20,
+      'Response contains valid custom token'
+    );
+    assert(
+      tokenData.path === `creatorStats/${alice.data.user.id}`,
+      'Response specifies correct database path'
+    );
 
     // 4.2 Subscriber blocked from obtaining custom token
     const subTokenRes = await fetch(`${BASE_URL}/api/creators/me/firebase-token`, {
       headers: { Authorization: `Bearer ${subC.token}` }
     });
-    assert(subTokenRes.status === 403, 'Subscriber GET /api/creators/me/firebase-token returns 403 Forbidden');
+    assert(
+      subTokenRes.status === 403,
+      'Subscriber GET /api/creators/me/firebase-token returns 403 Forbidden'
+    );
 
     // 4.3 REST Dashboard Fallback Endpoint
     const dashRes = await fetch(`${BASE_URL}/api/creators/me/dashboard/subscribers`, {
       headers: { Authorization: `Bearer ${alice.token}` }
     });
-    assert(dashRes.status === 200, 'Creator GET /api/creators/me/dashboard/subscribers returns 200');
+    assert(
+      dashRes.status === 200,
+      'Creator GET /api/creators/me/dashboard/subscribers returns 200'
+    );
     const dashData = await dashRes.json();
-    assert(typeof dashData.subscriberCount === 'number', 'Dashboard returns numeric subscriberCount');
+    assert(
+      typeof dashData.subscriberCount === 'number',
+      'Dashboard returns numeric subscriberCount'
+    );
     assert(typeof dashData.byTier === 'object', 'Dashboard returns byTier breakdown');
 
     // 4.4 Non-creator blocked from dashboard endpoint
     const subDashRes = await fetch(`${BASE_URL}/api/creators/me/dashboard/subscribers`, {
       headers: { Authorization: `Bearer ${subC.token}` }
     });
-    assert(subDashRes.status === 403, 'Subscriber GET /api/creators/me/dashboard/subscribers returns 403 Forbidden');
+    assert(
+      subDashRes.status === 403,
+      'Subscriber GET /api/creators/me/dashboard/subscribers returns 403 Forbidden'
+    );
 
     // =========================================================================
     // SECTION 5: Side-Effect Isolation (Hard Rule)

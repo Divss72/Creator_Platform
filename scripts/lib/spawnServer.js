@@ -114,4 +114,3 @@ module.exports = {
   getFreePort,
   waitForHealth
 };
-

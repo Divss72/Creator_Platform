@@ -26,7 +26,9 @@ const errorHandler = (err, req, res, next) => {
 
   // Zod request validation errors
   if (err instanceof ZodError) {
-    const message = err.errors.map((e) => `${e.path.join('.') || 'field'}: ${e.message}`).join(', ');
+    const message = err.errors
+      .map((e) => `${e.path.join('.') || 'field'}: ${e.message}`)
+      .join(', ');
     return res.status(400).json({
       error: {
         code: 'VALIDATION_ERROR',
@@ -75,7 +77,8 @@ const errorHandler = (err, req, res, next) => {
 
   // Sequelize unique constraint violation (e.g. duplicate email)
   if (err instanceof UniqueConstraintError) {
-    const message = err.errors && err.errors.length > 0 ? err.errors[0].message : 'Resource already exists';
+    const message =
+      err.errors && err.errors.length > 0 ? err.errors[0].message : 'Resource already exists';
     return res.status(409).json({
       error: {
         code: 'CONFLICT',

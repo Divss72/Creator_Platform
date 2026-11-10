@@ -31,4 +31,3 @@ const isActiveSubscription = (sub, now = new Date()) => {
 module.exports = {
   isActiveSubscription
 };
-

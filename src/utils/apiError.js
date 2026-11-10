@@ -21,7 +21,10 @@ class ApiError extends Error {
     return new ApiError(401, code, message);
   }
 
-  static forbidden(message = 'You do not have permission to perform this action', code = 'FORBIDDEN') {
+  static forbidden(
+    message = 'You do not have permission to perform this action',
+    code = 'FORBIDDEN'
+  ) {
     return new ApiError(403, code, message);
   }
 
@@ -37,7 +40,10 @@ class ApiError extends Error {
     return new ApiError(409, code, message);
   }
 
-  static mediaLimit(message = 'Media attachment limit reached (maximum 5 attachments per post)', details = null) {
+  static mediaLimit(
+    message = 'Media attachment limit reached (maximum 5 attachments per post)',
+    details = null
+  ) {
     return new ApiError(409, 'MEDIA_LIMIT', message, details);
   }
 

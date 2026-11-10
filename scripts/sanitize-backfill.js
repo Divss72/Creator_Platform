@@ -49,7 +49,9 @@ function stripTagsRepeatedly(input, preserveNewlines = false) {
 }
 
 async function runBackfill() {
-  console.log(`\n=== CreatorHub Data Sanitisation Backfill [${isApply ? 'APPLY MODE' : 'DRY RUN'}] ===\n`);
+  console.log(
+    `\n=== CreatorHub Data Sanitisation Backfill [${isApply ? 'APPLY MODE' : 'DRY RUN'}] ===\n`
+  );
 
   try {
     await sequelize.authenticate();
@@ -150,7 +152,9 @@ async function runBackfill() {
     console.log(`  - bio modified:         ${stats.creatorProfiles.bioModified}`);
 
     if (!isApply) {
-      console.log('\n[Dry Run] No database rows were modified. Run with --apply to commit changes.');
+      console.log(
+        '\n[Dry Run] No database rows were modified. Run with --apply to commit changes.'
+      );
     } else {
       console.log('\n[Applied] All modifications were safely persisted to the database.');
     }

@@ -74,10 +74,7 @@ const countByContentIds = async (contentIds) => {
   if (uniqueIds.length === 0) return map;
 
   const counts = await Comment.findAll({
-    attributes: [
-      'contentId',
-      [sequelize.fn('COUNT', sequelize.col('id')), 'count']
-    ],
+    attributes: ['contentId', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
     where: {
       contentId: { [Op.in]: uniqueIds }
     },

@@ -88,10 +88,7 @@ const outboxStore = {
       const rows = await EmailOutbox.findAll({
         where: {
           status: 'pending',
-          [Op.or]: [
-            { nextAttemptAt: null },
-            { nextAttemptAt: { [Op.lte]: now } }
-          ]
+          [Op.or]: [{ nextAttemptAt: null }, { nextAttemptAt: { [Op.lte]: now } }]
         },
         order: [['id', 'ASC']],
         limit: batchSize,

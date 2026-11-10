@@ -130,7 +130,7 @@ class FakeDriver {
   thumbnailUrl(publicId, options = {}) {
     const { resourceType = 'image' } = options;
     const safeId = encodeURIComponent(publicId).replace(/%2F/g, '/');
-    const ext = resourceType === 'video' ? 'jpg' : (options.format || 'jpg');
+    const ext = resourceType === 'video' ? 'jpg' : options.format || 'jpg';
     return `https://fake-storage.creatorhub.local/${resourceType}/thumb/${safeId}.${ext}?s=fake_thumb_sig`;
   }
 }

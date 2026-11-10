@@ -21,7 +21,9 @@ const formatContent = (contentInstance) => {
       ? {
           id: content.creator.id,
           name: content.creator.name,
-          displayName: content.creator.profile ? content.creator.profile.displayName : content.creator.name,
+          displayName: content.creator.profile
+            ? content.creator.profile.displayName
+            : content.creator.name,
           bio: content.creator.profile ? content.creator.profile.bio : null
         }
       : undefined,
@@ -31,10 +33,13 @@ const formatContent = (contentInstance) => {
 };
 
 const encodeCursor = (item) => {
-  const dateStr = item.createdAt instanceof Date
-    ? item.createdAt.toISOString()
-    : new Date(item.createdAt).toISOString();
-  return Buffer.from(JSON.stringify({ createdAt: dateStr, id: item.id }), 'utf8').toString('base64');
+  const dateStr =
+    item.createdAt instanceof Date
+      ? item.createdAt.toISOString()
+      : new Date(item.createdAt).toISOString();
+  return Buffer.from(JSON.stringify({ createdAt: dateStr, id: item.id }), 'utf8').toString(
+    'base64'
+  );
 };
 
 const decodeCursor = (cursorStr) => {
@@ -105,10 +110,7 @@ const buildFeedConditions = ({ filter = {}, accessProfile = null }) => {
     for (const [creatorId, rank] of accessProfile.rankByCreatorId.entries()) {
       if (rank > accessProfile.defaultRank) {
         accessibleOrConditions.push({
-          [Op.and]: [
-            { creatorId },
-            { '$minTier.rank$': { [Op.lte]: rank } }
-          ]
+          [Op.and]: [{ creatorId }, { '$minTier.rank$': { [Op.lte]: rank } }]
         });
       }
     }
@@ -142,10 +144,7 @@ const contentStore = {
     });
 
     const reloaded = await Content.findByPk(newContent.id, {
-      include: [
-        { model: Tier, as: 'minTier', attributes: ['name', 'rank'] },
-        creatorInclude
-      ]
+      include: [{ model: Tier, as: 'minTier', attributes: ['name', 'rank'] }, creatorInclude]
     });
 
     return formatContent(reloaded);
@@ -163,10 +162,7 @@ const contentStore = {
       offset,
       limit: limitNum,
       order: [['createdAt', 'DESC']],
-      include: [
-        { model: Tier, as: 'minTier', attributes: ['name', 'rank'] },
-        creatorInclude
-      ]
+      include: [{ model: Tier, as: 'minTier', attributes: ['name', 'rank'] }, creatorInclude]
     });
 
     const items = rows.map(formatContent);
@@ -219,10 +215,7 @@ const contentStore = {
 
     const rows = await Content.findAll({
       where: whereClause,
-      include: [
-        { model: Tier, as: 'minTier', attributes: ['name', 'rank'] },
-        creatorInclude
-      ],
+      include: [{ model: Tier, as: 'minTier', attributes: ['name', 'rank'] }, creatorInclude],
       order: [
         ['createdAt', 'DESC'],
         ['id', 'DESC']
@@ -252,15 +245,12 @@ const contentStore = {
       return 0;
     }
 
-    const whereClause = feedConditions.andConditions.length > 0
-      ? { [Op.and]: feedConditions.andConditions }
-      : {};
+    const whereClause =
+      feedConditions.andConditions.length > 0 ? { [Op.and]: feedConditions.andConditions } : {};
 
     const count = await Content.count({
       where: whereClause,
-      include: [
-        { model: Tier, as: 'minTier', attributes: [] }
-      ],
+      include: [{ model: Tier, as: 'minTier', attributes: [] }],
       distinct: true,
       col: 'id'
     });
@@ -275,10 +265,7 @@ const contentStore = {
     if (!id) return null;
 
     const item = await Content.findByPk(id, {
-      include: [
-        { model: Tier, as: 'minTier', attributes: ['name', 'rank'] },
-        creatorInclude
-      ]
+      include: [{ model: Tier, as: 'minTier', attributes: ['name', 'rank'] }, creatorInclude]
     });
 
     return formatContent(item);
@@ -308,10 +295,7 @@ const contentStore = {
     await content.update(updateFields);
 
     const reloaded = await Content.findByPk(id, {
-      include: [
-        { model: Tier, as: 'minTier', attributes: ['name', 'rank'] },
-        creatorInclude
-      ]
+      include: [{ model: Tier, as: 'minTier', attributes: ['name', 'rank'] }, creatorInclude]
     });
 
     return formatContent(reloaded);

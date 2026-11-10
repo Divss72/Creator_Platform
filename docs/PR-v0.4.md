@@ -1,6 +1,7 @@
 # Pull Request: v0.4 Realtime Socket.io & Live Chat
 
 ## Summary of Changes
+
 This PR implements **Version 0.4 (v0.4)** of the CreatorHub platform. It adds real-time live chat to every post using Socket.io on the same HTTP server port, enforces paywall rules on rooms and comments, tracks distinct viewer counts, adds a REST chat history endpoint with cursor pagination, and enables real-time access revocation when subscriptions or post tiers change.
 
 ---
@@ -67,15 +68,18 @@ This PR implements **Version 0.4 (v0.4)** of the CreatorHub platform. It adds re
 ## How to Test
 
 ### 1. Reset Database & Run Automated Verifications
+
 ```bash
 npm run db:reset
 npm run dev # in background or separate terminal
 npm run verify:realtime
 npm run verify:paywall
 ```
-*Expected output: All 65 realtime checks pass, and all 56 paywall checks pass.*
+
+_Expected output: All 65 realtime checks pass, and all 56 paywall checks pass._
 
 ### 2. Test Interactive Live Chat (/dev/chat)
+
 1. Start the server in development mode:
    ```bash
    npm run dev

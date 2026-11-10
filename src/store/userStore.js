@@ -24,7 +24,8 @@ const formatUser = (userInstance) => {
     avatarUrl: user.profile ? user.profile.avatarUrl : null,
     avatarPublicId: user.profile ? user.profile.avatarPublicId : null,
     notifyNewPosts: user.notifyNewPosts !== undefined ? Boolean(user.notifyNewPosts) : true,
-    notifyWeeklyDigest: user.notifyWeeklyDigest !== undefined ? Boolean(user.notifyWeeklyDigest) : true,
+    notifyWeeklyDigest:
+      user.notifyWeeklyDigest !== undefined ? Boolean(user.notifyWeeklyDigest) : true,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt
   };

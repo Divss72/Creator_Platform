@@ -14,11 +14,17 @@ async function startServer() {
   } catch (error) {
     console.error('\n================================================================');
     console.error('[CreatorHub] FATAL: Unable to connect to MySQL database!');
-    console.error(`Config: host=${env.DB_HOST}, port=${env.DB_PORT}, db=${env.DB_NAME}, user=${env.DB_USER}`);
+    console.error(
+      `Config: host=${env.DB_HOST}, port=${env.DB_PORT}, db=${env.DB_NAME}, user=${env.DB_USER}`
+    );
     console.error(`Reason: ${error.message}`);
     console.error('\nTroubleshooting Checklist:');
-    console.error(' 1. Ensure MySQL service or Docker container is running (e.g. `docker compose up -d`).');
-    console.error(' 2. Verify DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASSWORD in your .env file.');
+    console.error(
+      ' 1. Ensure MySQL service or Docker container is running (e.g. `docker compose up -d`).'
+    );
+    console.error(
+      ' 2. Verify DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASSWORD in your .env file.'
+    );
     console.error(' 3. Ensure the database exists by running `npm run db:create`.');
     console.error('================================================================\n');
     process.exit(1);
@@ -38,7 +44,9 @@ async function startServer() {
 
   server.listen(env.PORT, () => {
     console.log(`[CreatorHub] API server listening on port ${env.PORT} in ${env.NODE_ENV} mode`);
-    console.log(`[CreatorHub] GraphQL endpoint available at POST http://localhost:${env.PORT}/graphql`);
+    console.log(
+      `[CreatorHub] GraphQL endpoint available at POST http://localhost:${env.PORT}/graphql`
+    );
   });
 
   // Graceful shutdown order: Jobs -> Socket.io -> Apollo -> HTTP server -> DB connection

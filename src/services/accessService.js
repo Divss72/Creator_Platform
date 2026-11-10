@@ -192,7 +192,10 @@ const resolveAccessBulk = async ({ viewer, contents }) => {
   // Fetch all active subscriptions across all creators on the page in ONE single query
   let activeSubsMap = new Map();
   if (viewerId && uniqueCreatorIds.length > 0) {
-    activeSubsMap = await subscriptionStore.findActiveByViewerAndCreators(viewerId, uniqueCreatorIds);
+    activeSubsMap = await subscriptionStore.findActiveByViewerAndCreators(
+      viewerId,
+      uniqueCreatorIds
+    );
   }
 
   for (const item of contents) {
@@ -233,7 +236,12 @@ const resolveAccessBulk = async ({ viewer, contents }) => {
  * @param {number} [params.limit=100]
  * @returns {Promise<Array<{ userId: string, email: string, name: string, tierName: string, tierRank: number }>>}
  */
-const getEligibleSubscribers = async ({ creatorId, requiredRank = 0, afterUserId, limit = 100 }) => {
+const getEligibleSubscribers = async ({
+  creatorId,
+  requiredRank = 0,
+  afterUserId,
+  limit = 100
+}) => {
   return subscriptionStore.findEligibleSubscribers({
     creatorId,
     minTierRank: requiredRank,

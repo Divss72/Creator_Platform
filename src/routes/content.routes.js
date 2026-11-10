@@ -36,13 +36,28 @@ const checkPostOwnership = async (req, res, next) => {
 };
 
 // List all content (paginated, optional authentication for paywall access)
-router.get('/', optionalAuth, validate(listContentSchema), asyncHandler(contentController.listContent));
+router.get(
+  '/',
+  optionalAuth,
+  validate(listContentSchema),
+  asyncHandler(contentController.listContent)
+);
 
 // List comments for a post (chat history, optional authentication for paywall access)
-router.get('/:id/comments', optionalAuth, validate(listCommentsSchema), asyncHandler(commentsController.listComments));
+router.get(
+  '/:id/comments',
+  optionalAuth,
+  validate(listCommentsSchema),
+  asyncHandler(commentsController.listComments)
+);
 
 // Get single content item (optional authentication for preview vs full content)
-router.get('/:id', optionalAuth, validate(contentIdParamSchema), asyncHandler(contentController.getContentById));
+router.get(
+  '/:id',
+  optionalAuth,
+  validate(contentIdParamSchema),
+  asyncHandler(contentController.getContentById)
+);
 
 // Create content (creator only)
 router.post(
