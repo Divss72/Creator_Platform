@@ -19,12 +19,7 @@ class CloudinaryDriver {
    * Upload file to Cloudinary.
    */
   async upload(filePath, options = {}) {
-    const {
-      publicId,
-      resourceType = 'image',
-      type = 'authenticated',
-      folder = ''
-    } = options;
+    const { publicId, resourceType = 'image', type = 'authenticated', folder = '' } = options;
 
     try {
       const uploadOptions = {
@@ -92,9 +87,7 @@ class CloudinaryDriver {
   signedUrl(publicId, options = {}) {
     const { resourceType = 'image', type = 'authenticated' } = options;
 
-    const transformation = [
-      { quality: 'auto', fetch_format: 'auto' }
-    ];
+    const transformation = [{ quality: 'auto', fetch_format: 'auto' }];
 
     if (resourceType === 'image') {
       transformation.push({ width: 1600, crop: 'limit' });
@@ -124,9 +117,7 @@ class CloudinaryDriver {
         type,
         sign_url: type === 'authenticated',
         secure: true,
-        transformation: [
-          { width: 400, height: 300, crop: 'fill', quality: 'auto' }
-        ]
+        transformation: [{ width: 400, height: 300, crop: 'fill', quality: 'auto' }]
       });
     }
 

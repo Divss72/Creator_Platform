@@ -1,9 +1,11 @@
 # Pull Request: v0.3 Subscriptions + Paywall
 
 ## Summary of Changes
+
 This PR completes **Version 0.3 (v0.3)** of the CreatorHub platform. It implements dynamic tier ranking, framework-independent access resolution, mock subscription purchases with idempotent upgrades/cancellations, and safe server-side paywall preview enforcement for content.
 
 ### Key Changes:
+
 1. **Tier Management (`src/store/tierStore.js`, `src/controllers/tiers.controller.js`, `src/routes/tiers.routes.js`)**:
    - Built tier repository with in-memory caching for tier models and name-to-tier mappings.
    - Exposed public `GET /api/tiers` returning `[{ name, rank, priceCents }]` dynamically from the database.
@@ -79,21 +81,29 @@ This PR completes **Version 0.3 (v0.3)** of the CreatorHub platform. It implemen
 ## How to Test
 
 ### 1. Run Automated Paywall Verification (56 checks)
+
 In a separate terminal while the server is running:
+
 ```bash
 npm run verify:paywall
 ```
-*Expected output: All 56 checks pass with exit code 0.*
+
+_Expected output: All 56 checks pass with exit code 0._
 
 ### 2. Run Regression Test Suite
+
 Verify that v0.1 auth/creator/content behaviors and v0.2 persistence remain 100% intact:
+
 ```bash
 node scripts/verify-associations.js
 ```
-*Expected: "ALL 11 ASSOCIATIONS VERIFIED SUCCESSFULLY!"*
+
+_Expected: "ALL 11 ASSOCIATIONS VERIFIED SUCCESSFULLY!"_
 
 ### 3. Manual Testing via REST Client
+
 Open [requests.http](requests.http) to execute requests for:
+
 - `GET /api/tiers`
 - `POST /api/subscriptions` (subscribe, upgrade, idempotency, creator 403)
 - `GET /api/subscriptions/me`

@@ -1,9 +1,11 @@
 # Pull Request: v0.2 MySQL + Sequelize
 
 ## Summary of Changes
+
 This PR completes **Version 0.2 (v0.2)** of the CreatorHub platform, replacing the v0.1 in-memory repository store with a persistent MySQL 8 database managed through Sequelize ORM, while maintaining 100% backward compatibility with all existing API contracts.
 
 ### Key Changes:
+
 1. **Database Infrastructure & Configuration**:
    - Added `sequelize`, `mysql2`, and `sequelize-cli` (dev).
    - Added `.sequelizerc` configuring paths for config, models, migrations, and seeders.
@@ -66,28 +68,38 @@ This PR completes **Version 0.2 (v0.2)** of the CreatorHub platform, replacing t
 ## How to Test
 
 ### 1. Verify Associations
+
 Run the automated script to test all 11 model associations:
+
 ```bash
 node scripts/verify-associations.js
 ```
-*Expected: "ALL 11 ASSOCIATIONS VERIFIED SUCCESSFULLY!"*
+
+_Expected: "ALL 11 ASSOCIATIONS VERIFIED SUCCESSFULLY!"_
 
 ### 2. Verify Migration Rollback & Reset
+
 ```bash
 npm run db:migrate:undo
 npm run db:reset
 ```
-*Expected: Clean rollback of all 6 migrations, followed by successful drop, create, migration, and idempotent seeding.*
+
+_Expected: Clean rollback of all 6 migrations, followed by successful drop, create, migration, and idempotent seeding._
 
 ### 3. Verify API Parity & Persistence
+
 Run the API integration suite against the running server:
+
 ```bash
 node "C:\Users\raodi\.gemini\antigravity-ide\brain\274dd41e-4593-4b4a-9dd6-03c52c3a9efd\scratch\test-runner.js"
 ```
-*Expected: All 24 API verification tests pass.*
+
+_Expected: All 24 API verification tests pass._
 
 ### 4. Verify Failure Diagnostics on Invalid Credentials
+
 ```bash
 $env:DB_PASSWORD="invalid_password"; node src/server.js; $env:DB_PASSWORD="creatorhub_pass"
 ```
-*Expected: Server exits with code 1 and prints the formatted troubleshooting checklist.*
+
+_Expected: Server exits with code 1 and prints the formatted troubleshooting checklist._

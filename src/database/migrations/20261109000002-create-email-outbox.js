@@ -106,4 +106,3 @@ module.exports = {
     await queryInterface.dropTable('email_outbox');
   }
 };
-

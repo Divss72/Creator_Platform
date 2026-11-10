@@ -23,4 +23,3 @@ module.exports = {
     await queryInterface.removeColumn('users', 'notify_new_posts');
   }
 };
-

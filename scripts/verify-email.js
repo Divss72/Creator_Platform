@@ -89,11 +89,21 @@ async function run() {
 
     // Clean initial state for isolated test execution
     await sequelize.query('DELETE FROM email_outbox');
-    await sequelize.query('DELETE FROM subscriptions WHERE subscriber_id = "c0000003-cccc-4ccc-8ccc-cccccccccccc"');
-    await sequelize.query('UPDATE subscriptions SET status = "active", ends_at = NULL WHERE subscriber_id = "a0000001-aaaa-4aaa-8aaa-aaaaaaaaaaaa" AND creator_id = "a1111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa"');
-    await sequelize.query('UPDATE subscriptions SET status = "active", ends_at = NULL WHERE subscriber_id = "b0000002-bbbb-4bbb-8bbb-bbbbbbbbbbbb" AND creator_id = "a1111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa"');
-    await sequelize.query('UPDATE users SET notify_new_posts = true, notify_weekly_digest = true WHERE id IN ("a0000001-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "b0000002-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "c0000003-cccc-4ccc-8ccc-cccccccccccc")');
-    await sequelize.query('UPDATE users SET notify_new_posts = false, notify_weekly_digest = false WHERE id = "f0000006-ffff-4fff-8fff-ffffffffffff"');
+    await sequelize.query(
+      'DELETE FROM subscriptions WHERE subscriber_id = "c0000003-cccc-4ccc-8ccc-cccccccccccc"'
+    );
+    await sequelize.query(
+      'UPDATE subscriptions SET status = "active", ends_at = NULL WHERE subscriber_id = "a0000001-aaaa-4aaa-8aaa-aaaaaaaaaaaa" AND creator_id = "a1111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa"'
+    );
+    await sequelize.query(
+      'UPDATE subscriptions SET status = "active", ends_at = NULL WHERE subscriber_id = "b0000002-bbbb-4bbb-8bbb-bbbbbbbbbbbb" AND creator_id = "a1111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa"'
+    );
+    await sequelize.query(
+      'UPDATE users SET notify_new_posts = true, notify_weekly_digest = true WHERE id IN ("a0000001-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "b0000002-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "c0000003-cccc-4ccc-8ccc-cccccccccccc")'
+    );
+    await sequelize.query(
+      'UPDATE users SET notify_new_posts = false, notify_weekly_digest = false WHERE id = "f0000006-ffff-4fff-8fff-ffffffffffff"'
+    );
 
     await clearMail();
 
@@ -124,9 +134,13 @@ async function run() {
       (m) => m.to === 'subc.free@creatorhub.local' && m.subject.includes('Welcome')
     );
     assert(welcomeEmail !== undefined, 'Welcome email received by LogDriver for Sub C');
-    assert(welcomeEmail && welcomeEmail.headers['List-Unsubscribe'] !== undefined, 'Email includes List-Unsubscribe header');
     assert(
-      welcomeEmail && welcomeEmail.headers['List-Unsubscribe-Post'] === 'List-Unsubscribe=One-Click',
+      welcomeEmail && welcomeEmail.headers['List-Unsubscribe'] !== undefined,
+      'Email includes List-Unsubscribe header'
+    );
+    assert(
+      welcomeEmail &&
+        welcomeEmail.headers['List-Unsubscribe-Post'] === 'List-Unsubscribe=One-Click',
       'Email includes RFC 8058 List-Unsubscribe-Post header'
     );
 
@@ -167,7 +181,10 @@ async function run() {
       },
       body: JSON.stringify({
         title: 'Exclusive Pro Architectural Patterns\r\n', // Subject with CR/LF
-        body: '<p>' + 'This is public preview teaser text. '.repeat(10) + '</p><p>SECRET_FULL_PRO_BODY_NEVER_LEAK_12345: In-depth secret analysis.</p>',
+        body:
+          '<p>' +
+          'This is public preview teaser text. '.repeat(10) +
+          '</p><p>SECRET_FULL_PRO_BODY_NEVER_LEAK_12345: In-depth secret analysis.</p>',
         minTier: 'pro'
       })
     });
@@ -176,7 +193,9 @@ async function run() {
     // Allow outbox worker to process fan-out batch
     await sleep(1000);
 
-    const postNotifications = (await getSentMail()).filter((m) => m.subject.includes('New post from Alice'));
+    const postNotifications = (await getSentMail()).filter((m) =>
+      m.subject.includes('New post from Alice')
+    );
 
     // Sub A (Alice VIP, rank 2) and Sub B (Alice Pro, rank 1) must receive emails
     const receivedA = postNotifications.some((m) => m.to === 'suba.vip@creatorhub.local');
@@ -211,7 +230,10 @@ async function run() {
     await clearMail();
 
     const digestRun1 = await digestService.runDigest({ now: new Date(), dryRun: false });
-    assert(digestRun1.enqueuedCount >= 1, 'Digest generator enqueued digests for eligible subscribers');
+    assert(
+      digestRun1.enqueuedCount >= 1,
+      'Digest generator enqueued digests for eligible subscribers'
+    );
 
     // Allow worker to process batch
     await sleep(1000);
@@ -225,7 +247,10 @@ async function run() {
 
     // Run again with same ISO week -> Deduplication check
     const digestRun2 = await digestService.runDigest({ now: new Date(), dryRun: false });
-    assert(digestRun2.enqueuedCount === 0, 'Deduplication: Running digest again for same ISO week enqueued 0 emails');
+    assert(
+      digestRun2.enqueuedCount === 0,
+      'Deduplication: Running digest again for same ISO week enqueued 0 emails'
+    );
 
     // =========================================================================
     // SECTION 4: Notification Preferences API & Public Unsubscribe
@@ -239,7 +264,8 @@ async function run() {
     assert(getPrefsRes.status === 200, 'GET /api/notifications/preferences returns 200');
     const prefsData = await getPrefsRes.json();
     assert(
-      prefsData.preferences.notifyNewPosts === true && prefsData.preferences.notifyWeeklyDigest === true,
+      prefsData.preferences.notifyNewPosts === true &&
+        prefsData.preferences.notifyWeeklyDigest === true,
       'Initial preferences are enabled by default'
     );
 
@@ -254,7 +280,10 @@ async function run() {
     });
     assert(putPrefsRes.status === 200, 'PUT /api/notifications/preferences returns 200');
     const updatedPrefs = await putPrefsRes.json();
-    assert(updatedPrefs.preferences.notifyNewPosts === false, 'notifyNewPosts successfully set to false');
+    assert(
+      updatedPrefs.preferences.notifyNewPosts === false,
+      'notifyNewPosts successfully set to false'
+    );
 
     // Restore Sub A preference
     await fetch(`${BASE_URL}/api/notifications/preferences`, {
@@ -271,25 +300,44 @@ async function run() {
     const validToken = createUnsubscribeToken({ userId: subBUser.id, type: 'weekly_digest' });
 
     // Valid unsubscribe GET request
-    const unsubGetRes = await fetch(`${BASE_URL}/api/email/unsubscribe?token=${encodeURIComponent(validToken)}`, {
-      headers: { Accept: 'application/json' }
-    });
-    assert(unsubGetRes.status === 200, 'GET /api/email/unsubscribe with valid HMAC token returns 200');
+    const unsubGetRes = await fetch(
+      `${BASE_URL}/api/email/unsubscribe?token=${encodeURIComponent(validToken)}`,
+      {
+        headers: { Accept: 'application/json' }
+      }
+    );
+    assert(
+      unsubGetRes.status === 200,
+      'GET /api/email/unsubscribe with valid HMAC token returns 200'
+    );
     const unsubData = await unsubGetRes.json();
-    assert(unsubData.preferences.notifyWeeklyDigest === false, 'Sub B successfully unsubscribed from weekly digest');
+    assert(
+      unsubData.preferences.notifyWeeklyDigest === false,
+      'Sub B successfully unsubscribed from weekly digest'
+    );
 
     // Tampered token check
     const tamperedToken = validToken.slice(0, -5) + 'xxxxx';
-    const tamperedRes = await fetch(`${BASE_URL}/api/email/unsubscribe?token=${encodeURIComponent(tamperedToken)}`, {
-      headers: { Accept: 'application/json' }
-    });
+    const tamperedRes = await fetch(
+      `${BASE_URL}/api/email/unsubscribe?token=${encodeURIComponent(tamperedToken)}`,
+      {
+        headers: { Accept: 'application/json' }
+      }
+    );
     assert(tamperedRes.status === 400, 'Tampered unsubscribe token returns 400 Bad Request');
 
     // Expired token check
-    const expiredToken = createUnsubscribeToken({ userId: subBUser.id, type: 'all', expiresInDays: -1 });
-    const expiredRes = await fetch(`${BASE_URL}/api/email/unsubscribe?token=${encodeURIComponent(expiredToken)}`, {
-      headers: { Accept: 'application/json' }
+    const expiredToken = createUnsubscribeToken({
+      userId: subBUser.id,
+      type: 'all',
+      expiresInDays: -1
     });
+    const expiredRes = await fetch(
+      `${BASE_URL}/api/email/unsubscribe?token=${encodeURIComponent(expiredToken)}`,
+      {
+        headers: { Accept: 'application/json' }
+      }
+    );
     assert(expiredRes.status === 400, 'Expired unsubscribe token returns 400 Bad Request');
 
     // =========================================================================
@@ -319,7 +367,10 @@ async function run() {
 
     // Verify row status remained 'pending' with attempts = 1 and error recorded
     const failedRow = await EmailOutbox.findByPk(testEnqueue.row.id);
-    assert(failedRow.status === 'pending', 'Transient failure keeps row in "pending" status for retry');
+    assert(
+      failedRow.status === 'pending',
+      'Transient failure keeps row in "pending" status for retry'
+    );
     assert(failedRow.attempts === 1, 'Attempt counter incremented to 1');
     assert(failedRow.lastError !== null, 'Last error recorded on outbox row');
 
@@ -366,13 +417,19 @@ async function run() {
     });
 
     // Sub A cancels subscription to Alice before email is sent
-    await subscriptionStore.cancel({ subscriberId: subA.data.user.id, creatorId: alice.data.user.id });
+    await subscriptionStore.cancel({
+      subscriberId: subA.data.user.id,
+      creatorId: alice.data.user.id
+    });
 
     // Allow worker poll cycle
     await sleep(600);
 
     const revokedRow = await EmailOutbox.findByPk(revokeEnqueue.row.id);
-    assert(revokedRow.status === 'skipped', 'Outbox worker skipped email when subscriber lost access before send');
+    assert(
+      revokedRow.status === 'skipped',
+      'Outbox worker skipped email when subscriber lost access before send'
+    );
     assert(revokedRow.skipReason === 'access_revoked', 'Skip reason recorded as "access_revoked"');
 
     console.log(`\n================================================================`);

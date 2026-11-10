@@ -32,8 +32,10 @@ const dedupeKeys = {
  * @param {number} [params.expiresInDays=30]
  * @returns {string}
  */
-function createUnsubscribeToken({ userId, type = 'all', expiresInDays = 30 }) {
-  const expiresAt = Math.floor(Date.now() / 1000) + expiresInDays * 24 * 60 * 60;
+function createUnsubscribeToken({ userId, type = 'all', expiresInDays = 30, now = Date.now() }) {
+  const baseSec =
+    typeof now === 'number' ? Math.floor(now / 1000) : Math.floor(new Date(now).getTime() / 1000);
+  const expiresAt = baseSec + expiresInDays * 24 * 60 * 60;
   const payload = `${userId}.${type}.${expiresAt}`;
   const sig = signToken(payload);
   return Buffer.from(`${payload}.${sig}`).toString('base64url');
@@ -43,9 +45,11 @@ function createUnsubscribeToken({ userId, type = 'all', expiresInDays = 30 }) {
  * Verify an unsubscribe token.
  *
  * @param {string} token
+ * @param {Object} [options]
+ * @param {Date|number} [options.now]
  * @returns {{ valid: boolean, userId?: string, type?: string, expired?: boolean }}
  */
-function verifyUnsubscribeToken(token) {
+function verifyUnsubscribeToken(token, { now = Date.now() } = {}) {
   try {
     if (!token || typeof token !== 'string') {
       return { valid: false };
@@ -68,17 +72,21 @@ function verifyUnsubscribeToken(token) {
     const sigBuffer = Buffer.from(sig);
     const expectedBuffer = Buffer.from(expectedSig);
 
-    if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
+    if (
+      sigBuffer.length !== expectedBuffer.length ||
+      !crypto.timingSafeEqual(sigBuffer, expectedBuffer)
+    ) {
       return { valid: false };
     }
 
-    const now = Math.floor(Date.now() / 1000);
-    if (now > expiresAt) {
+    const nowSec =
+      typeof now === 'number' ? Math.floor(now / 1000) : Math.floor(new Date(now).getTime() / 1000);
+    if (nowSec > expiresAt) {
       return { valid: false, expired: true, userId, type };
     }
 
     return { valid: true, expired: false, userId, type };
-  } catch (err) {
+  } catch (_err) {
     return { valid: false };
   }
 }
@@ -94,12 +102,15 @@ function buildUnsubscribeUrl({ userId, type = 'all', expiresInDays = 30 }) {
 /**
  * Calculate next attempt time using configured retry delays.
  * @param {number} attempt
+ * @param {Object} [options]
+ * @param {Date|number} [options.now]
  * @returns {Date}
  */
-function calculateNextAttempt(attempt) {
+function calculateNextAttempt(attempt, { now = Date.now() } = {}) {
   const delays = env.EMAIL_RETRY_DELAYS_SECONDS;
   const delaySec = delays[Math.min(attempt, delays.length - 1)] || 3600;
-  return new Date(Date.now() + delaySec * 1000);
+  const baseMs = typeof now === 'number' ? now : new Date(now).getTime();
+  return new Date(baseMs + delaySec * 1000);
 }
 
 /**
@@ -110,9 +121,12 @@ function calculateNextAttempt(attempt) {
  * 3. Fresh subscription access check for new-post emails
  *
  * @param {Object} row
+ * @param {Object} [options]
+ * @param {Date|number} [options.now]
+ * @param {Object} [options.driver]
  * @returns {Promise<{ status: 'sent'|'skipped'|'failed', error?: string }>}
  */
-async function processOutboxRow(row) {
+async function processOutboxRow(row, { now = Date.now(), driver = null } = {}) {
   try {
     // 1. Abuse protection: Check 24h recipient cap
     const sentCount24h = await outboxStore.countByRecipientLast24h(row.toEmail);
@@ -153,8 +167,8 @@ async function processOutboxRow(row) {
     }
 
     // 4. Send via configured driver
-    const driver = getMailDriver();
-    const result = await driver.send({
+    const mailDriver = driver || getMailDriver();
+    const result = await mailDriver.send({
       to: row.toEmail,
       from: env.EMAIL_FROM,
       subject: row.subject,
@@ -170,7 +184,7 @@ async function processOutboxRow(row) {
     return { status: 'sent' };
   } catch (err) {
     const isTransient = err.isTransient ?? true;
-    const nextAttemptAt = calculateNextAttempt(row.attempts || 0);
+    const nextAttemptAt = calculateNextAttempt(row.attempts || 0, { now });
 
     await outboxStore.markFailed(row.id, {
       error: err.message,
@@ -191,4 +205,3 @@ module.exports = {
   calculateNextAttempt,
   processOutboxRow
 };
-

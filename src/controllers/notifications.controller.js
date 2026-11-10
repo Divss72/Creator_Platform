@@ -29,7 +29,9 @@ const updatePreferences = async (req, res) => {
   const { notifyNewPosts, notifyWeeklyDigest } = req.body;
 
   if (notifyNewPosts === undefined && notifyWeeklyDigest === undefined) {
-    throw ApiError.badRequest('At least one of notifyNewPosts or notifyWeeklyDigest must be provided');
+    throw ApiError.badRequest(
+      'At least one of notifyNewPosts or notifyWeeklyDigest must be provided'
+    );
   }
 
   if (notifyNewPosts !== undefined && typeof notifyNewPosts !== 'boolean') {
@@ -59,4 +61,3 @@ module.exports = {
   getPreferences,
   updatePreferences
 };
-

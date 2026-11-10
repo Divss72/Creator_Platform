@@ -23,6 +23,20 @@ class FirebaseSyncService {
   }
 
   /**
+   * Alias for flushDebouncedSyncs() for test convenience.
+   */
+  async flush() {
+    return this.flushDebouncedSyncs();
+  }
+
+  /**
+   * Immediately sync creator metrics without debouncing.
+   */
+  async syncCreatorNow(creatorId) {
+    return this.syncCreatorMetrics(creatorId, { immediate: true });
+  }
+
+  /**
    * Cancel all pending debounced sync timers without executing.
    */
   cancelAllSyncs() {
@@ -93,7 +107,10 @@ class FirebaseSyncService {
         return payload;
       } catch (err) {
         if (attempt >= maxRetries) {
-          console.error(`[FirebaseSync] Failed to sync creator ${creatorId} after ${maxRetries} attempts:`, err.message);
+          console.error(
+            `[FirebaseSync] Failed to sync creator ${creatorId} after ${maxRetries} attempts:`,
+            err.message
+          );
           return null;
         }
         // Exponential backoff
@@ -104,4 +121,3 @@ class FirebaseSyncService {
 }
 
 module.exports = new FirebaseSyncService();
-

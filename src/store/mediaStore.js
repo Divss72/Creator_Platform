@@ -18,7 +18,12 @@ const formatMedia = (m) => {
     bytes: item.bytes,
     width: item.width !== undefined ? item.width : null,
     height: item.height !== undefined ? item.height : null,
-    durationSeconds: item.durationSeconds !== undefined ? item.durationSeconds : (item.duration_seconds !== undefined ? item.duration_seconds : null),
+    durationSeconds:
+      item.durationSeconds !== undefined
+        ? item.durationSeconds
+        : item.duration_seconds !== undefined
+          ? item.duration_seconds
+          : null,
     originalName: item.originalName || item.original_name,
     position: item.position,
     createdAt: item.createdAt || item.created_at,
@@ -146,14 +151,17 @@ const mediaStore = {
       });
 
       if (currentCount >= MEDIA.MAX_PER_POST) {
-        throw ApiError.mediaLimit('Media attachment limit reached (maximum 5 attachments per post)');
+        throw ApiError.mediaLimit(
+          'Media attachment limit reached (maximum 5 attachments per post)'
+        );
       }
 
       // 3. Check total creator quota under lock
-      const currentUsed = await Media.sum('bytes', {
-        where: { creatorId },
-        transaction
-      }) || 0;
+      const currentUsed =
+        (await Media.sum('bytes', {
+          where: { creatorId },
+          transaction
+        })) || 0;
 
       if (currentUsed + bytes > MEDIA.QUOTA_BYTES_PER_CREATOR) {
         throw ApiError.quotaExceeded('Creator storage quota exceeded');

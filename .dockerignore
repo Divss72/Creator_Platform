@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+coverage
+.nyc_output
+tests
+docs
+*.md
+.editorconfig
+.prettierrc
+.prettierignore
+eslint.config.js
+

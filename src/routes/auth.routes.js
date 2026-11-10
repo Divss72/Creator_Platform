@@ -10,7 +10,12 @@ const { authRegisterLimiter, authLoginLimiter } = require('../middleware/rateLim
 
 const router = Router();
 
-router.post('/register', authRegisterLimiter, validate(registerSchema), asyncHandler(authController.register));
+router.post(
+  '/register',
+  authRegisterLimiter,
+  validate(registerSchema),
+  asyncHandler(authController.register)
+);
 router.post('/login', authLoginLimiter, validate(loginSchema), asyncHandler(authController.login));
 router.get('/me', requireAuth, asyncHandler(authController.getMe));
 

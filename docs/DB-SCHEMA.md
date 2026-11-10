@@ -119,7 +119,9 @@ erDiagram
 ## 2. Table Descriptions
 
 ### `users`
+
 Core user identity table supporting both `'creator'` and `'subscriber'` roles.
+
 - `id`: UUID (`CHAR(36)`) primary key.
 - `email`: Normalized unique index preventing duplicate registrations.
 - `password_hash`: Bcrypt salted hash, never exposed in API responses.
@@ -128,7 +130,9 @@ Core user identity table supporting both `'creator'` and `'subscriber'` roles.
 - `notify_weekly_digest`: Boolean (default `true`) indicating opt-in preference for weekly summary digest emails.
 
 ### `creator_profiles`
+
 1-to-1 profile extension for users with the `'creator'` role.
+
 - `user_id`: Unique foreign key referencing `users(id)` with `ON DELETE CASCADE`.
 - `display_name`: Public creator name.
 - `bio`: Creator biography / channel introduction.
@@ -136,13 +140,17 @@ Core user identity table supporting both `'creator'` and `'subscriber'` roles.
 - `avatar_public_id`: Cloudinary public identifier for the avatar asset, used for asset replacement/deletion cleanup.
 
 ### `tiers`
+
 Platform-wide reference table establishing subscription tiers and ordering.
+
 - `name`: Unique name (`'free'`, `'pro'`, `'vip'`).
 - `rank`: Numeric hierarchy (`0` for Free, `1` for Pro, `2` for VIP).
 - `price_cents`: Simulated monthly price in cents.
 
 ### `content`
+
 Posts published by creators.
+
 - `creator_id`: Foreign key referencing `users(id)` with `ON DELETE CASCADE`.
 - `min_tier_id`: Foreign key referencing `tiers(id)`.
 - **Indexes**:
@@ -150,7 +158,9 @@ Posts published by creators.
   - `idx_content_min_tier_id` (`min_tier_id`).
 
 ### `media` (Added in v0.6)
+
 Media assets (images and videos) attached to content posts.
+
 - `content_id`: Foreign key referencing `content(id)` with `ON DELETE CASCADE`.
 - `creator_id`: Foreign key referencing `users(id)` with `ON DELETE CASCADE`.
 - `kind`: Media category (`image` or `video`).
@@ -166,17 +176,23 @@ Media assets (images and videos) attached to content posts.
   - `idx_media_creator`: `(creator_id)`
 
 ### `subscriptions`
+
 Records subscriber memberships to specific creators.
+
 - Unique constraint: `(subscriber_id, creator_id)`.
 
 ### `comments`
+
 Discussion comments published under content posts.
+
 - `content_id`: Foreign key referencing `content(id)` with `ON DELETE CASCADE`.
 - `user_id`: Foreign key referencing `users(id)` with `ON DELETE CASCADE`.
 - **Index**: `idx_comments_content_created_at` (`content_id`, `created_at`).
 
 ### `email_outbox` (Added in v0.7)
+
 Transactional outbox table for reliable asynchronous email delivery and send-time verification.
+
 - `id`: UUID (`CHAR(36)`) primary key.
 - `recipient`: Target email address (`VARCHAR(255)`).
 - `template`: Email template identifier (`welcome`, `new_post`, `digest`).

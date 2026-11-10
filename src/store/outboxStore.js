@@ -88,10 +88,7 @@ const outboxStore = {
       const rows = await EmailOutbox.findAll({
         where: {
           status: 'pending',
-          [Op.or]: [
-            { nextAttemptAt: null },
-            { nextAttemptAt: { [Op.lte]: now } }
-          ]
+          [Op.or]: [{ nextAttemptAt: null }, { nextAttemptAt: { [Op.lte]: now } }]
         },
         order: [['id', 'ASC']],
         limit: batchSize,
@@ -260,6 +257,30 @@ const outboxStore = {
     });
 
     return { deletedSent, deletedFailed };
+  },
+
+  /**
+   * List outbox rows for a recipient (useful for inspection and testing).
+   */
+  async listByRecipient(toEmail) {
+    if (!toEmail) return [];
+    const rows = await EmailOutbox.findAll({
+      where: { toEmail: toEmail.toLowerCase().trim() },
+      order: [['createdAt', 'DESC']]
+    });
+    return rows.map(formatOutboxRow);
+  },
+
+  /**
+   * List outbox rows for a user ID.
+   */
+  async listByUserId(userId) {
+    if (!userId) return [];
+    const rows = await EmailOutbox.findAll({
+      where: { userId },
+      order: [['createdAt', 'DESC']]
+    });
+    return rows.map(formatOutboxRow);
   }
 };
 

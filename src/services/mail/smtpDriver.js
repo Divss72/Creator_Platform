@@ -87,4 +87,3 @@ class SmtpDriver {
 }
 
 module.exports = new SmtpDriver();
-

@@ -34,7 +34,9 @@ function renderWelcomeEmail({ subscriberName, creatorName, tierName, unsubscribe
   const safeTier = escapeHtml((tierName || 'free').toUpperCase());
   const safeUnsub = escapeHtml(unsubscribeUrl);
 
-  const subject = cleanSubject(`Welcome to ${creatorName || 'Creator'}'s ${safeTier} Tier on CreatorHub!`);
+  const subject = cleanSubject(
+    `Welcome to ${creatorName || 'Creator'}'s ${safeTier} Tier on CreatorHub!`
+  );
 
   const html = `<!DOCTYPE html>
 <html>
@@ -87,4 +89,3 @@ module.exports = {
   escapeHtml,
   cleanSubject
 };
-

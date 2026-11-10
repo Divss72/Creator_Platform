@@ -9,10 +9,25 @@ const ApiError = require('../utils/apiError');
  */
 
 const RICH_TEXT_ALLOWED_TAGS = [
-  'p', 'br', 'h2', 'h3', 'h4',
-  'strong', 'b', 'em', 'i', 'u', 's',
-  'blockquote', 'ul', 'ol', 'li',
-  'a', 'code', 'pre', 'hr'
+  'p',
+  'br',
+  'h2',
+  'h3',
+  'h4',
+  'strong',
+  'b',
+  'em',
+  'i',
+  'u',
+  's',
+  'blockquote',
+  'ul',
+  'ol',
+  'li',
+  'a',
+  'code',
+  'pre',
+  'hr'
 ];
 
 const RICH_TEXT_OPTIONS = {
@@ -161,7 +176,8 @@ function generatePlainTextExcerpt(richHtml, maxLength = 200) {
   let truncated = collapsed;
   if (collapsed.length > maxLength) {
     const boundary = collapsed.lastIndexOf(' ', maxLength);
-    truncated = (boundary > 0 ? collapsed.slice(0, boundary) : collapsed.slice(0, maxLength)) + '...';
+    truncated =
+      (boundary > 0 ? collapsed.slice(0, boundary) : collapsed.slice(0, maxLength)) + '...';
   }
 
   // 5. If truncated still looks like it has a tag, replace '<' with full-width '＜'

@@ -90,4 +90,3 @@ To manage your notification preferences or unsubscribe: ${unsubscribeUrl}
 module.exports = {
   renderDigestEmail
 };
-

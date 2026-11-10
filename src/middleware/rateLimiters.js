@@ -76,7 +76,8 @@ const userWritesLimiter = createLimiter({
 const mediaUploadLimiter = createLimiter({
   windowMs: RATE_LIMITS.MEDIA_UPLOAD.WINDOW_MS,
   max: RATE_LIMITS.MEDIA_UPLOAD.MAX_REQUESTS,
-  keyGenerator: (req) => (req.user && req.user.id ? `upload:${req.user.id}` : `upload:${getClientIp(req)}`)
+  keyGenerator: (req) =>
+    req.user && req.user.id ? `upload:${req.user.id}` : `upload:${getClientIp(req)}`
 });
 
 // 6. GraphQL rate limiter: 60 requests / 1 min per IP
@@ -95,7 +96,8 @@ const unsubscribeLimiter = createLimiter({
 const firebaseTokenLimiter = createLimiter({
   windowMs: RATE_LIMITS.FIREBASE_TOKEN.WINDOW_MS,
   max: RATE_LIMITS.FIREBASE_TOKEN.MAX_REQUESTS,
-  keyGenerator: (req) => (req.user && req.user.id ? `fb_token:${req.user.id}` : `fb_token:${getClientIp(req)}`)
+  keyGenerator: (req) =>
+    req.user && req.user.id ? `fb_token:${req.user.id}` : `fb_token:${getClientIp(req)}`
 });
 
 module.exports = {

@@ -107,7 +107,9 @@ class LogDriver {
       this.buffer.shift();
     }
 
-    console.log(`[MailLog] Sent email id=${messageId} to=${maskEmail(options.to)} subject="${options.subject}"`);
+    console.log(
+      `[MailLog] Sent email id=${messageId} to=${maskEmail(options.to)} subject="${options.subject}"`
+    );
 
     return {
       messageId,
@@ -118,4 +120,3 @@ class LogDriver {
 }
 
 module.exports = new LogDriver();
-

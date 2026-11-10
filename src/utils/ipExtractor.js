@@ -24,7 +24,10 @@ function getClientIp(req) {
       ? headers['x-forwarded-for'][0]
       : headers['x-forwarded-for'];
 
-    const ips = xForwardedFor.split(',').map((ip) => ip.trim()).filter(Boolean);
+    const ips = xForwardedFor
+      .split(',')
+      .map((ip) => ip.trim())
+      .filter(Boolean);
     if (ips.length > 0) {
       return ips[0];
     }

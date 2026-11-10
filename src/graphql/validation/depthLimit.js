@@ -64,7 +64,11 @@ const createDepthLimitRule = (maxDepth = 6) => {
                 const fragment = fragments[fragmentName];
                 if (fragment && fragment.selectionSet) {
                   visitedFragments.add(fragmentName);
-                  const childDepth = checkDepth(fragment.selectionSet, currentDepth, visitedFragments);
+                  const childDepth = checkDepth(
+                    fragment.selectionSet,
+                    currentDepth,
+                    visitedFragments
+                  );
                   visitedFragments.delete(fragmentName);
                   if (childDepth > maxChildDepth) {
                     maxChildDepth = childDepth;
@@ -73,7 +77,11 @@ const createDepthLimitRule = (maxDepth = 6) => {
               }
             } else if (selection.kind === Kind.INLINE_FRAGMENT) {
               if (selection.selectionSet) {
-                const childDepth = checkDepth(selection.selectionSet, currentDepth, visitedFragments);
+                const childDepth = checkDepth(
+                  selection.selectionSet,
+                  currentDepth,
+                  visitedFragments
+                );
                 if (childDepth > maxChildDepth) {
                   maxChildDepth = childDepth;
                 }

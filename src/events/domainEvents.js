@@ -48,10 +48,37 @@ const emitContentCreated = (payload) => {
   }
 };
 
+const activeTasks = new Set();
+
+/**
+ * Register a promise in the domain event task tracker.
+ * @param {Promise<any>} promise
+ * @returns {Promise<any>}
+ */
+const trackTask = (promise) => {
+  activeTasks.add(promise);
+  promise.finally(() => {
+    activeTasks.delete(promise);
+  });
+  return promise;
+};
+
+/**
+ * Wait until all in-flight domain event asynchronous handler tasks have settled.
+ * Eliminates arbitrary sleeps in integration tests.
+ * @returns {Promise<void>}
+ */
+const whenIdle = async () => {
+  while (activeTasks.size > 0) {
+    await Promise.all(Array.from(activeTasks));
+  }
+};
+
 module.exports = {
   domainEvents,
   DOMAIN_EVENTS,
   emitSubscriptionChanged,
-  emitContentCreated
+  emitContentCreated,
+  trackTask,
+  whenIdle
 };
-

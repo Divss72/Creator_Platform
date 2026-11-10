@@ -16,7 +16,13 @@ async function verifyAssociations() {
   const testCreatorEmail = `verify.creator.${testIdSuffix}@test.local`;
   const testSubEmail = `verify.sub.${testIdSuffix}@test.local`;
 
-  let testCreator, testProfile, testTier, testContent, testSubscriber, testSubscription, testComment;
+  let testCreator,
+    testProfile,
+    testTier,
+    testContent,
+    testSubscriber,
+    testSubscription,
+    testComment;
 
   try {
     // 0. Ensure a tier exists
@@ -91,14 +97,20 @@ async function verifyAssociations() {
     const creatorWithProfile = await User.findByPk(testCreator.id, {
       include: [{ model: CreatorProfile, as: 'profile' }]
     });
-    assert(creatorWithProfile?.profile?.displayName === 'Verify Creator Profile', 'User hasOne CreatorProfile (creator.profile)');
+    assert(
+      creatorWithProfile?.profile?.displayName === 'Verify Creator Profile',
+      'User hasOne CreatorProfile (creator.profile)'
+    );
 
     // B. CreatorProfile.user
     const profileWithUser = await CreatorProfile.findOne({
       where: { userId: testCreator.id },
       include: [{ model: User, as: 'user' }]
     });
-    assert(profileWithUser?.user?.email === testCreatorEmail, 'CreatorProfile belongsTo User (profile.user)');
+    assert(
+      profileWithUser?.user?.email === testCreatorEmail,
+      'CreatorProfile belongsTo User (profile.user)'
+    );
 
     // C. User.contents
     const creatorWithContents = await User.findByPk(testCreator.id, {
@@ -110,7 +122,10 @@ async function verifyAssociations() {
     const contentWithCreator = await Content.findByPk(testContent.id, {
       include: [{ model: User, as: 'creator' }]
     });
-    assert(contentWithCreator?.creator?.name === 'Verify Creator', 'Content belongsTo User (content.creator)');
+    assert(
+      contentWithCreator?.creator?.name === 'Verify Creator',
+      'Content belongsTo User (content.creator)'
+    );
 
     // E. Content.minTier
     const contentWithTier = await Content.findByPk(testContent.id, {
@@ -128,13 +143,19 @@ async function verifyAssociations() {
     const subWithCreators = await User.findByPk(testSubscriber.id, {
       include: [{ model: User, as: 'subscribedTo' }]
     });
-    assert(subWithCreators?.subscribedTo?.some((c) => c.id === testCreator.id), 'User belongsToMany User as subscribedTo (subscriber.subscribedTo)');
+    assert(
+      subWithCreators?.subscribedTo?.some((c) => c.id === testCreator.id),
+      'User belongsToMany User as subscribedTo (subscriber.subscribedTo)'
+    );
 
     // H. User (creator).subscribers
     const creatorWithSubs = await User.findByPk(testCreator.id, {
       include: [{ model: User, as: 'subscribers' }]
     });
-    assert(creatorWithSubs?.subscribers?.some((s) => s.id === testSubscriber.id), 'User belongsToMany User as subscribers (creator.subscribers)');
+    assert(
+      creatorWithSubs?.subscribers?.some((s) => s.id === testSubscriber.id),
+      'User belongsToMany User as subscribers (creator.subscribers)'
+    );
 
     // I. Subscription.tier
     const subWithTier = await Subscription.findByPk(testSubscription.id, {
@@ -146,7 +167,10 @@ async function verifyAssociations() {
     const contentWithComments = await Content.findByPk(testContent.id, {
       include: [{ model: Comment, as: 'comments' }]
     });
-    assert(contentWithComments?.comments?.length === 1, 'Content hasMany Comment (content.comments)');
+    assert(
+      contentWithComments?.comments?.length === 1,
+      'Content hasMany Comment (content.comments)'
+    );
 
     // K. Comment.user and Comment.content
     const commentWithRelations = await Comment.findByPk(testComment.id, {
@@ -155,8 +179,14 @@ async function verifyAssociations() {
         { model: Content, as: 'content' }
       ]
     });
-    assert(commentWithRelations?.user?.id === testSubscriber.id, 'Comment belongsTo User (comment.user)');
-    assert(commentWithRelations?.content?.id === testContent.id, 'Comment belongsTo Content (comment.content)');
+    assert(
+      commentWithRelations?.user?.id === testSubscriber.id,
+      'Comment belongsTo User (comment.user)'
+    );
+    assert(
+      commentWithRelations?.content?.id === testContent.id,
+      'Comment belongsTo Content (comment.content)'
+    );
 
     console.log('\n🎉 ALL 11 ASSOCIATIONS VERIFIED SUCCESSFULLY! 🎉\n');
   } catch (err) {

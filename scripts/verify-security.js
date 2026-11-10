@@ -100,13 +100,19 @@ async function run() {
       savedBody.includes('rel="noopener noreferrer nofollow"'),
       'XSS: External links automatically get rel="noopener noreferrer nofollow"'
     );
-    assert(savedBody.includes('<p>This is a safe post paragraph.</p>'), 'Rich text preserves allowed <p> tags');
+    assert(
+      savedBody.includes('<p>This is a safe post paragraph.</p>'),
+      'Rich text preserves allowed <p> tags'
+    );
     assert(savedBody.includes('<b>Bold text</b>'), 'Rich text preserves allowed <b> tags');
 
     // 1.2 Plain-text excerpt generation: Extracts clean plain text with no HTML tags
     const excerpt = createPostData.content.excerpt;
     assert(!excerpt.includes('<') && !excerpt.includes('>'), 'Excerpt contains zero HTML tags');
-    assert(excerpt.includes('Welcome') && excerpt.includes('This is a safe post paragraph'), 'Excerpt contains plain text');
+    assert(
+      excerpt.includes('Welcome') && excerpt.includes('This is a safe post paragraph'),
+      'Excerpt contains plain text'
+    );
 
     // 1.3 Plain-text fields reject HTML tag sequences with VALIDATION_ERROR (400)
     const evilTitleRes = await fetch(`${BASE_URL}/api/content`, {
@@ -137,7 +143,10 @@ async function run() {
     } catch (err) {
       commentError = err;
     }
-    assert(commentError !== null && commentError.statusCode === 400, 'Comment containing HTML tags returns 400 Bad Request');
+    assert(
+      commentError !== null && commentError.statusCode === 400,
+      'Comment containing HTML tags returns 400 Bad Request'
+    );
     assert(commentError?.code === 'VALIDATION_ERROR', 'Comment error code is VALIDATION_ERROR');
 
     // 1.5 Plain-text fields accept benign mathematical and emoticon sequences (<3, a < b > c)
@@ -153,7 +162,10 @@ async function run() {
         minTier: 'free'
       })
     });
-    assert(benignTitleRes.status === 201, 'Benign sequences like "I <3" and "5 < 10 > 2" are allowed in plain text');
+    assert(
+      benignTitleRes.status === 201,
+      'Benign sequences like "I <3" and "5 < 10 > 2" are allowed in plain text'
+    );
 
     // =========================================================================
     // SECTION 2: Data Sanitisation Backfill Script
@@ -162,9 +174,13 @@ async function run() {
 
     const runScript = (args) => {
       return new Promise((resolve) => {
-        const proc = spawn(process.execPath, [path.resolve(__dirname, 'sanitize-backfill.js'), ...args], {
-          env: process.env
-        });
+        const proc = spawn(
+          process.execPath,
+          [path.resolve(__dirname, 'sanitize-backfill.js'), ...args],
+          {
+            env: process.env
+          }
+        );
         let out = '';
         proc.stdout.on('data', (d) => (out += d.toString()));
         proc.stderr.on('data', (d) => (out += d.toString()));
@@ -187,8 +203,14 @@ async function run() {
 
     // 3.1 Auth login SQLi attempts
     const sqliLogin1 = await login("' OR '1'='1", "' OR '1'='1");
-    assert(sqliLogin1.status === 400 || sqliLogin1.status === 401, 'SQLi login attempt rejected cleanly (400 or 401)');
-    assert(!JSON.stringify(sqliLogin1).includes('SQL syntax'), 'No SQL syntax error leaked in login');
+    assert(
+      sqliLogin1.status === 400 || sqliLogin1.status === 401,
+      'SQLi login attempt rejected cleanly (400 or 401)'
+    );
+    assert(
+      !JSON.stringify(sqliLogin1).includes('SQL syntax'),
+      'No SQL syntax error leaked in login'
+    );
 
     // 3.2 Registration SQLi
     const sqliRegister = await fetch(`${BASE_URL}/api/auth/register`, {
@@ -201,7 +223,10 @@ async function run() {
         role: 'subscriber'
       })
     });
-    assert(sqliRegister.status === 400, 'Registration with invalid SQLi email fails validation (400)');
+    assert(
+      sqliRegister.status === 400,
+      'Registration with invalid SQLi email fails validation (400)'
+    );
     assert(!JSON.stringify(await sqliRegister.json()).includes('SQL'), 'No raw SQL error returned');
 
     // Verify database users table remains completely intact
@@ -213,8 +238,13 @@ async function run() {
     assert(sqliPath.status === 400, 'Invalid UUID path parameter returns 400 VALIDATION_ERROR');
 
     // 3.4 Pagination parameter injection
-    const sqliPagination = await fetch(`${BASE_URL}/api/content?page=1;DROP%20TABLE%20users&limit=10`);
-    assert(sqliPagination.status === 400, 'Malicious pagination parameter returns 400 VALIDATION_ERROR');
+    const sqliPagination = await fetch(
+      `${BASE_URL}/api/content?page=1;DROP%20TABLE%20users&limit=10`
+    );
+    assert(
+      sqliPagination.status === 400,
+      'Malicious pagination parameter returns 400 VALIDATION_ERROR'
+    );
 
     // 3.5 Static codebase audit: scan src/ for dangerous raw SQL query formatting
     const scanDir = (dir) => {
@@ -242,7 +272,10 @@ async function run() {
         unescapedInterpolationCount++;
       }
     }
-    assert(unescapedInterpolationCount === 0, 'Static SQL audit: 0 unescaped SQL string interpolations across src/');
+    assert(
+      unescapedInterpolationCount === 0,
+      'Static SQL audit: 0 unescaped SQL string interpolations across src/'
+    );
 
     // =========================================================================
     // SECTION 4: Helmet Security Headers (Dev vs Production)
@@ -250,7 +283,10 @@ async function run() {
     console.log('\n--- 4. Testing Helmet Security Headers ---');
 
     const healthRes = await fetch(`${BASE_URL}/health`);
-    assert(healthRes.headers.get('x-content-type-options') === 'nosniff', 'X-Content-Type-Options: nosniff header present');
+    assert(
+      healthRes.headers.get('x-content-type-options') === 'nosniff',
+      'X-Content-Type-Options: nosniff header present'
+    );
     assert(healthRes.headers.get('x-frame-options') !== null, 'X-Frame-Options header present');
 
     // Spawn production child server to verify strict CSP
@@ -269,7 +305,10 @@ async function run() {
     try {
       const prodHealth = await fetch(`${prodServer.baseUrl}/health`);
       const prodCsp = prodHealth.headers.get('content-security-policy');
-      assert(prodCsp !== null && prodCsp.includes("default-src 'self'"), 'Production server applies strict Content-Security-Policy');
+      assert(
+        prodCsp !== null && prodCsp.includes("default-src 'self'"),
+        'Production server applies strict Content-Security-Policy'
+      );
     } finally {
       await prodServer.stop();
     }
@@ -306,7 +345,10 @@ async function run() {
         'Access-Control-Request-Headers': 'Content-Type, Authorization'
       }
     });
-    assert(preflightRes.status === 204 || preflightRes.status === 200, 'Preflight OPTIONS returns 200 or 204');
+    assert(
+      preflightRes.status === 204 || preflightRes.status === 200,
+      'Preflight OPTIONS returns 200 or 204'
+    );
     assert(
       preflightRes.headers.get('access-control-allow-origin') === 'http://localhost:3000',
       'Preflight returns Access-Control-Allow-Origin for allowed origin'
@@ -328,7 +370,10 @@ async function run() {
 
     const socketDisallowedResult = await socketDisallowedPromise;
     socketDisallowed.disconnect();
-    assert(socketDisallowedResult.error !== undefined, 'Socket connection from disallowed Origin is rejected');
+    assert(
+      socketDisallowedResult.error !== undefined,
+      'Socket connection from disallowed Origin is rejected'
+    );
 
     // =========================================================================
     // SECTION 6: Production Startup Safety Checks
@@ -359,7 +404,10 @@ async function run() {
       { CORS_ORIGIN: '*' },
       'CORS_ORIGIN cannot be empty or contain wildcard ("*") in production mode'
     );
-    assert(failCors.code !== 0 && failCors.matches, 'Production rejects startup with CORS_ORIGIN=*');
+    assert(
+      failCors.code !== 0 && failCors.matches,
+      'Production rejects startup with CORS_ORIGIN=*'
+    );
 
     // 6.2 RATE_LIMIT_ENABLED=false in production
     const failRateLimit = await testStartupFailure(
@@ -369,7 +417,10 @@ async function run() {
       },
       'RATE_LIMIT_ENABLED cannot be false in production mode'
     );
-    assert(failRateLimit.code !== 0 && failRateLimit.matches, 'Production rejects startup with RATE_LIMIT_ENABLED=false');
+    assert(
+      failRateLimit.code !== 0 && failRateLimit.matches,
+      'Production rejects startup with RATE_LIMIT_ENABLED=false'
+    );
 
     // 6.3 STORAGE_DRIVER=fake in production
     const failFakeDriver = await testStartupFailure(
@@ -380,7 +431,10 @@ async function run() {
       },
       'STORAGE_DRIVER cannot be "fake" in production mode'
     );
-    assert(failFakeDriver.code !== 0 && failFakeDriver.matches, 'Production rejects startup with STORAGE_DRIVER=fake');
+    assert(
+      failFakeDriver.code !== 0 && failFakeDriver.matches,
+      'Production rejects startup with STORAGE_DRIVER=fake'
+    );
 
     // 6.4 Short JWT_SECRET in production (must be at least 32 chars in production)
     const failShortSecret = await testStartupFailure(
@@ -395,7 +449,10 @@ async function run() {
       },
       'JWT_SECRET must be at least 32 characters in production mode'
     );
-    assert(failShortSecret.code !== 0 && failShortSecret.matches, 'Production rejects startup with short JWT_SECRET');
+    assert(
+      failShortSecret.code !== 0 && failShortSecret.matches,
+      'Production rejects startup with short JWT_SECRET'
+    );
 
     // =========================================================================
     // SECTION 7: Multi-Tier Rate Limiters & Request Size Controls
@@ -409,7 +466,10 @@ async function run() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: 'test@example.com', padding: largeBody })
     });
-    assert(largePayloadRes.status === 413, 'Payload exceeding 100 KB returns 413 Payload Too Large');
+    assert(
+      largePayloadRes.status === 413,
+      'Payload exceeding 100 KB returns 413 Payload Too Large'
+    );
 
     // 7.2 Auth Login Rate Limiter (Max 10 failed attempts, skips successful)
     // Spawn dedicated test server for rate limit testing with specific isolated IP
@@ -426,7 +486,10 @@ async function run() {
         await fetch(`${rlBase}/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: 'alice.creator@creatorhub.local', password: 'WrongPassword!' })
+          body: JSON.stringify({
+            email: 'alice.creator@creatorhub.local',
+            password: 'WrongPassword!'
+          })
         });
       }
 
@@ -434,9 +497,15 @@ async function run() {
       const attempt11 = await fetch(`${rlBase}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'alice.creator@creatorhub.local', password: 'WrongPassword!' })
+        body: JSON.stringify({
+          email: 'alice.creator@creatorhub.local',
+          password: 'WrongPassword!'
+        })
       });
-      assert(attempt11.status === 429, '11th failed login attempt is blocked with 429 Too Many Requests');
+      assert(
+        attempt11.status === 429,
+        '11th failed login attempt is blocked with 429 Too Many Requests'
+      );
       const attempt11Data = await attempt11.json();
       assert(attempt11Data.error?.code === 'RATE_LIMITED', 'Error code is RATE_LIMITED');
     } finally {
@@ -470,7 +539,10 @@ async function run() {
       body: JSON.stringify({ query: valid10Query })
     });
     const data10 = await res10.json();
-    assert(data10.data !== undefined && !data10.errors, 'GraphQL query with 10 root fields succeeds');
+    assert(
+      data10.data !== undefined && !data10.errors,
+      'GraphQL query with 10 root fields succeeds'
+    );
 
     // 8.2 11 root fields (exceeds limit of 10)
     const invalid11Query = `
@@ -528,7 +600,10 @@ async function run() {
       for (const s of activeSockets) {
         if (s.connected) connectedCount++;
       }
-      assert(connectedCount >= 18, `Successfully connected ${connectedCount} concurrent sockets (max 20)`);
+      assert(
+        connectedCount >= 18,
+        `Successfully connected ${connectedCount} concurrent sockets (max 20)`
+      );
 
       // 21st socket connection from same IP must be rejected
       const socket21 = io(socketServer.baseUrl, {
@@ -545,7 +620,10 @@ async function run() {
 
       const res21 = await socket21Promise;
       socket21.disconnect();
-      assert(res21.error !== undefined, '21st concurrent socket connection from same IP is rejected');
+      assert(
+        res21.error !== undefined,
+        '21st concurrent socket connection from same IP is rejected'
+      );
 
       // Cleanup sockets
       for (const s of activeSockets) {
@@ -572,7 +650,10 @@ async function run() {
       const forwardedRes = await fetch(`${proxyServer.baseUrl}/health`, {
         headers: { 'X-Forwarded-For': '203.0.113.195' }
       });
-      assert(forwardedRes.status === 200, 'Server with TRUST_PROXY=true handles forwarded requests properly');
+      assert(
+        forwardedRes.status === 200,
+        'Server with TRUST_PROXY=true handles forwarded requests properly'
+      );
     } finally {
       await proxyServer.stop();
     }

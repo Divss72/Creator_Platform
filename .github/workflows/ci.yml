@@ -1,0 +1,127 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint & Style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+      - run: npx prettier --check .
+
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run test:unit -- --coverage
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: creatorhub_test
+          MYSQL_USER: creatorhub_user
+          MYSQL_PASSWORD: creatorhub_pass
+        ports:
+          - 3307:3306
+        options: --health-cmd="mysqladmin ping -prootpassword" --health-interval=5s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+      - run: npm ci
+      - name: Run Integration Tests
+        env:
+          NODE_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3307
+          DB_NAME: creatorhub_test
+          DB_NAME_TEST: creatorhub_test
+          DB_USER: creatorhub_user
+          DB_PASSWORD: creatorhub_pass
+        run: npm run test:integration
+
+  security:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+      - run: npm audit --audit-level=high
+
+  image:
+    name: Docker Build & Smoke Test
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: creatorhub_dev
+          MYSQL_USER: creatorhub_user
+          MYSQL_PASSWORD: creatorhub_pass
+        ports:
+          - 3307:3306
+        options: --health-cmd="mysqladmin ping -prootpassword" --health-interval=5s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t creatorhub-api:test .
+      - name: Run container & verify smoke tests
+        run: |
+          docker run -d --name creatorhub-app --network host \
+            -e NODE_ENV=production \
+            -e PORT=5000 \
+            -e DB_HOST=127.0.0.1 \
+            -e DB_PORT=3307 \
+            -e DB_NAME=creatorhub_dev \
+            -e DB_USER=creatorhub_user \
+            -e DB_PASSWORD=creatorhub_pass \
+            -e JWT_SECRET=super-secure-production-jwt-secret-min-32-chars-long! \
+            -e EMAIL_TOKEN_SECRET=super-secure-production-email-secret-min-32-chars! \
+            -e CORS_ORIGIN=https://example.com \
+            -e STORAGE_DRIVER=fake \
+            -e MAIL_DRIVER=log \
+            -e FIREBASE_DRIVER=fake \
+            -e RUN_MIGRATIONS=true \
+            creatorhub-api:test
+          sleep 5
+          node scripts/smoke-test.js http://localhost:5000
+
+  ci-ok:
+    name: CI Passed Gate
+    needs: [lint, unit, integration, security, image]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All quality gates passed!"
+

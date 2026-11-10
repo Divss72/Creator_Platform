@@ -19,7 +19,9 @@ const unsubscribe = async (req, res) => {
   const result = verifyUnsubscribeToken(token);
   if (!result.valid) {
     if (result.expired) {
-      throw ApiError.badRequest('Unsubscribe token has expired. Please update preferences in account settings.');
+      throw ApiError.badRequest(
+        'Unsubscribe token has expired. Please update preferences in account settings.'
+      );
     }
     throw ApiError.badRequest('Invalid unsubscribe token');
   }
@@ -72,4 +74,3 @@ const unsubscribe = async (req, res) => {
 module.exports = {
   unsubscribe
 };
-

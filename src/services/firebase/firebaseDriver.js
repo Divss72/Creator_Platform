@@ -65,4 +65,3 @@ class FirebaseDriver {
 }
 
 module.exports = new FirebaseDriver();
-

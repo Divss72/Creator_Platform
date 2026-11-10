@@ -103,7 +103,7 @@ const subscriptionStore = {
    * Subscribe, upgrade, downgrade, or re-activate a subscription
    * Handles concurrency and race conditions gracefully.
    */
-  async subscribe({ subscriberId, creatorId, tierName }) {
+  async subscribe({ subscriberId, creatorId, tierName }, _retryCount = 0) {
     const tier = await Tier.findOne({ where: { name: tierName } });
     if (!tier) {
       throw new Error(`Tier '${tierName}' not found`);
@@ -190,13 +190,37 @@ const subscriptionStore = {
       return {
         subscription: formatSubscription(reloaded),
         isNew: false,
-        statusCode: 200
+        statusCode: 200,
+        action,
+        previousTier
       };
     } catch (err) {
-      await transaction.rollback();
+      if (transaction && !transaction.finished) {
+        try {
+          await transaction.rollback();
+        } catch (_rbErr) {
+          // transaction already rolled back or closed
+        }
+      }
+
+      const isDeadlock =
+        err.name === 'SequelizeDeadlockError' ||
+        (err.parent &&
+          (err.parent.code === 'ER_LOCK_DEADLOCK' ||
+            err.parent.errno === 1213 ||
+            (err.message && err.message.includes('Deadlock'))));
+
+      if (isDeadlock && _retryCount < 3) {
+        await new Promise((resolve) => setTimeout(resolve, 25 * (_retryCount + 1)));
+        return subscriptionStore.subscribe({ subscriberId, creatorId, tierName }, _retryCount + 1);
+      }
 
       // Handle race condition on unique constraint gracefully
-      if (err.name === 'SequelizeUniqueConstraintError') {
+      if (
+        err.name === 'SequelizeUniqueConstraintError' ||
+        (err.parent && err.parent.code === 'ER_DUP_ENTRY') ||
+        isDeadlock
+      ) {
         const fallback = await Subscription.findOne({
           where: { subscriberId, creatorId },
           include: [{ model: Tier, as: 'tier' }]
@@ -380,7 +404,11 @@ const subscriptionStore = {
 
     return subs.map((s) => ({
       creatorId: s.creatorId,
-      creatorName: s.creator ? (s.creator.profile ? s.creator.profile.displayName : s.creator.name) : 'Creator',
+      creatorName: s.creator
+        ? s.creator.profile
+          ? s.creator.profile.displayName
+          : s.creator.name
+        : 'Creator',
       tierName: s.tier ? s.tier.name : 'free',
       tierRank: s.tier ? s.tier.rank : 0
     }));

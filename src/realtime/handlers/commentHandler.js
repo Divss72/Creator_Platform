@@ -28,7 +28,11 @@ const registerCommentHandlers = (io, socket) => {
 
       // 2. Token expiry check (mid-session expiration protection)
       if (socket.data.tokenExp && Date.now() / 1000 >= socket.data.tokenExp) {
-        return sendError(ack, 'TOKEN_EXPIRED', 'Authentication token has expired. Please reconnect.');
+        return sendError(
+          ack,
+          'TOKEN_EXPIRED',
+          'Authentication token has expired. Please reconnect.'
+        );
       }
 
       // 3. Payload validation

@@ -26,9 +26,11 @@ const createContentSchema = {
   body: z.object({
     title: titleSchema,
     body: bodySchema,
-    minTier: z.enum(['free', 'pro', 'vip'], {
-      errorMap: () => ({ message: "minTier must be 'free', 'pro', or 'vip'" })
-    }).default('free')
+    minTier: z
+      .enum(['free', 'pro', 'vip'], {
+        errorMap: () => ({ message: "minTier must be 'free', 'pro', or 'vip'" })
+      })
+      .default('free')
   })
 };
 
@@ -36,15 +38,22 @@ const updateContentSchema = {
   params: z.object({
     id: z.string().uuid('Invalid content ID format')
   }),
-  body: z.object({
-    title: titleSchema.optional(),
-    body: bodySchema.optional(),
-    minTier: z.enum(['free', 'pro', 'vip'], {
-      errorMap: () => ({ message: "minTier must be 'free', 'pro', or 'vip'" })
-    }).optional()
-  }).refine((data) => data.title !== undefined || data.body !== undefined || data.minTier !== undefined, {
-    message: 'At least one field (title, body, or minTier) must be provided'
-  })
+  body: z
+    .object({
+      title: titleSchema.optional(),
+      body: bodySchema.optional(),
+      minTier: z
+        .enum(['free', 'pro', 'vip'], {
+          errorMap: () => ({ message: "minTier must be 'free', 'pro', or 'vip'" })
+        })
+        .optional()
+    })
+    .refine(
+      (data) => data.title !== undefined || data.body !== undefined || data.minTier !== undefined,
+      {
+        message: 'At least one field (title, body, or minTier) must be provided'
+      }
+    )
 };
 
 const listContentSchema = {

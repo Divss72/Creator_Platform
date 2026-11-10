@@ -16,13 +16,33 @@ const path = require('path');
 const { spawnServer } = require('./lib/spawnServer');
 
 const suites = [
-  { name: 'Model Associations (v0.2)', script: 'scripts/verify-associations.js', needsServer: false },
-  { name: 'Subscriptions & Paywall (v0.3)', script: 'scripts/verify-paywall.js', needsServer: true },
-  { name: 'Realtime Sockets & Chat (v0.4)', script: 'scripts/verify-realtime.js', needsServer: true },
-  { name: 'GraphQL Feed & Pagination (v0.5)', script: 'scripts/verify-graphql.js', needsServer: true },
+  {
+    name: 'Model Associations (v0.2)',
+    script: 'scripts/verify-associations.js',
+    needsServer: false
+  },
+  {
+    name: 'Subscriptions & Paywall (v0.3)',
+    script: 'scripts/verify-paywall.js',
+    needsServer: true
+  },
+  {
+    name: 'Realtime Sockets & Chat (v0.4)',
+    script: 'scripts/verify-realtime.js',
+    needsServer: true
+  },
+  {
+    name: 'GraphQL Feed & Pagination (v0.5)',
+    script: 'scripts/verify-graphql.js',
+    needsServer: true
+  },
   { name: 'Media Uploads & Storage (v0.6)', script: 'scripts/verify-media.js', needsServer: false },
   { name: 'Security & Hardening (v0.6)', script: 'scripts/verify-security.js', needsServer: false },
-  { name: 'Email Notifications & Outbox (v0.7)', script: 'scripts/verify-email.js', needsServer: false },
+  {
+    name: 'Email Notifications & Outbox (v0.7)',
+    script: 'scripts/verify-email.js',
+    needsServer: false
+  },
   { name: 'Firebase Live Metrics (v0.7)', script: 'scripts/verify-firebase.js', needsServer: false }
 ];
 
@@ -58,7 +78,10 @@ async function runAll() {
   await runScript('scripts/db-drop.js');
   await runScript('scripts/db-create.js');
   await new Promise((resolve, reject) => {
-    const migrate = spawn('npx', ['sequelize-cli', 'db:migrate'], { stdio: 'inherit', shell: true });
+    const migrate = spawn('npx', ['sequelize-cli', 'db:migrate'], {
+      stdio: 'inherit',
+      shell: true
+    });
     migrate.on('close', (c) => (c === 0 ? resolve() : reject(new Error('Migration failed'))));
   });
   await new Promise((resolve, reject) => {
@@ -100,4 +123,3 @@ async function runAll() {
 }
 
 runAll();
-
