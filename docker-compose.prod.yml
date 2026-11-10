@@ -1,0 +1,60 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: creatorhub-app
+    restart: unless-stopped
+    ports:
+      - '${PORT:-5000}:5000'
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-creatorhub_prod}
+      DB_USER: ${DB_USER:-creatorhub_user}
+      DB_PASSWORD: ${DB_PASSWORD:-creatorhub_pass}
+      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-key-change-in-production-min32chars}
+      JWT_EXPIRES_IN: 1d
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      RUN_MIGRATIONS: 'true'
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-fake}
+      MAIL_DRIVER: ${MAIL_DRIVER:-log}
+      FIREBASE_DRIVER: ${FIREBASE_DRIVER:-fake}
+      EMAIL_TOKEN_SECRET: ${EMAIL_TOKEN_SECRET:-super-secret-email-token-key-change-in-production-min32}
+      ALLOW_DEMO_SEED: ${ALLOW_DEMO_SEED:-true}
+      DEMO_RESET_CONFIRM: ${DEMO_RESET_CONFIRM:-creatorhub_prod}
+
+  mysql:
+    image: mysql:8.0
+    container_name: creatorhub-mysql-prod
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-creatorhub_prod}
+      MYSQL_USER: ${DB_USER:-creatorhub_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-creatorhub_pass}
+    volumes:
+      - mysql_prod_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'mysqladmin',
+          'ping',
+          '-h',
+          'localhost',
+          '-u',
+          'root',
+          '-p${DB_ROOT_PASSWORD:-rootpassword}'
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mysql_prod_data:
