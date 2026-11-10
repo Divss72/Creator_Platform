@@ -30,7 +30,24 @@ const contentItemResolvers = {
     return context.loaders.creatorLoader.load(parent.creatorId);
   },
   commentCount(parent, _args, context) {
+    if (parent.commentCount !== undefined) {
+      return parent.commentCount;
+    }
     return context.loaders.commentCountLoader.load(parent.id);
+  },
+  async likeCount(parent, _args, context) {
+    if (parent.likeCount !== undefined) {
+      return parent.likeCount;
+    }
+    const info = await context.loaders.likesLoader.load(parent.id);
+    return info.likeCount;
+  },
+  async likedByMe(parent, _args, context) {
+    if (parent.likedByMe !== undefined) {
+      return parent.likedByMe;
+    }
+    const info = await context.loaders.likesLoader.load(parent.id);
+    return info.likedByMe;
   },
   async media(parent, _args, context) {
     // Defense-in-depth: locked posts return empty media array (zero URL or publicId leakage)

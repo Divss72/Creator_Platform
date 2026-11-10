@@ -232,4 +232,3 @@
 - [x] GitHub Actions workflows: `.github/workflows/ci.yml`, `.github/workflows/cd.yml`
 - [x] Dependabot configuration (`.github/dependabot.yml`) and PR template (`.github/pull_request_template.md`)
 - [x] Documentation: `docs/TESTING.md`, `docs/CI-CD.md`, `docs/DEPLOYMENT.md`, `docs/PR-v0.8.md`
-

@@ -68,6 +68,16 @@ const formatContentItem = ({ item, hasAccess, viewerTier, mediaItems = null }) =
     updatedAt: item.updatedAt
   };
 
+  if (item.likeCount !== undefined) {
+    result.likeCount = Number(item.likeCount);
+  }
+  if (item.likedByMe !== undefined) {
+    result.likedByMe = Boolean(item.likedByMe);
+  }
+  if (item.commentCount !== undefined) {
+    result.commentCount = Number(item.commentCount);
+  }
+
   if (formattedMedia !== undefined) {
     result.media = formattedMedia;
   }

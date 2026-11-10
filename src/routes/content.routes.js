@@ -16,7 +16,11 @@ const {
 const commentsController = require('../controllers/comments.controller');
 const { listCommentsSchema } = require('../validators/comments.validator');
 const asyncHandler = require('../utils/asyncHandler');
-const { userWritesLimiter, mediaUploadLimiter } = require('../middleware/rateLimiters');
+const {
+  userWritesLimiter,
+  mediaUploadLimiter,
+  viewLimiter
+} = require('../middleware/rateLimiters');
 const { mediaUpload } = require('../middleware/upload');
 const { contentStore } = require('../store');
 const ApiError = require('../utils/apiError');
@@ -43,12 +47,42 @@ router.get(
   asyncHandler(contentController.listContent)
 );
 
+// Get trending content leaderboard
+router.get('/trending', optionalAuth, asyncHandler(contentController.getTrending));
+
 // List comments for a post (chat history, optional authentication for paywall access)
 router.get(
   '/:id/comments',
   optionalAuth,
   validate(listCommentsSchema),
   asyncHandler(commentsController.listComments)
+);
+
+// Record view on a post (optional authentication, privacy-safe deduplication, returns 204)
+router.post(
+  '/:id/view',
+  optionalAuth,
+  viewLimiter,
+  validate(contentIdParamSchema),
+  asyncHandler(contentController.recordView)
+);
+
+// Like a post (authenticated, full access required)
+router.put(
+  '/:id/like',
+  requireAuth,
+  userWritesLimiter,
+  validate(contentIdParamSchema),
+  asyncHandler(contentController.likeContent)
+);
+
+// Unlike a post (authenticated)
+router.delete(
+  '/:id/like',
+  requireAuth,
+  userWritesLimiter,
+  validate(contentIdParamSchema),
+  asyncHandler(contentController.unlikeContent)
 );
 
 // Get single content item (optional authentication for preview vs full content)

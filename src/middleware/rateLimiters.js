@@ -100,6 +100,21 @@ const firebaseTokenLimiter = createLimiter({
     req.user && req.user.id ? `fb_token:${req.user.id}` : `fb_token:${getClientIp(req)}`
 });
 
+// 9. View recording limiter: 120 requests / 1 min per IP
+const viewLimiter = createLimiter({
+  windowMs: RATE_LIMITS.VIEWS.WINDOW_MS,
+  max: RATE_LIMITS.VIEWS.MAX_REQUESTS,
+  keyGenerator: (req) => `views:${getClientIp(req)}`
+});
+
+// 10. Analytics read limiter: 60 requests / 1 min per user ID
+const analyticsReadLimiter = createLimiter({
+  windowMs: RATE_LIMITS.ANALYTICS_READ.WINDOW_MS,
+  max: RATE_LIMITS.ANALYTICS_READ.MAX_REQUESTS,
+  keyGenerator: (req) =>
+    req.user && req.user.id ? `analytics:${req.user.id}` : `analytics:${getClientIp(req)}`
+});
+
 module.exports = {
   globalLimiter,
   authRegisterLimiter,
@@ -108,5 +123,7 @@ module.exports = {
   mediaUploadLimiter,
   graphqlLimiter,
   unsubscribeLimiter,
-  firebaseTokenLimiter
+  firebaseTokenLimiter,
+  viewLimiter,
+  analyticsReadLimiter
 };

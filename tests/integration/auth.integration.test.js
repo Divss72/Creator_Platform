@@ -76,7 +76,10 @@ describe('Integration: Authentication & Authorization Flow', () => {
 
   describe('Login', () => {
     test('authenticates valid credentials and issues JWT token', async () => {
-      const sub = await createSubscriber({ email: 'logintest@test.local', password: 'Password123!' });
+      const sub = await createSubscriber({
+        email: 'logintest@test.local',
+        password: 'Password123!'
+      });
 
       const res = await api.request.post('/api/auth/login').send({
         email: 'logintest@test.local',
@@ -126,4 +129,3 @@ describe('Integration: Authentication & Authorization Flow', () => {
     });
   });
 });
-

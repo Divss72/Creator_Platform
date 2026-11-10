@@ -53,6 +53,8 @@ type ContentItem {
   body: String
   excerpt: String!
   viewerTier: TierName!
+  likeCount: Int!
+  likedByMe: Boolean!
   commentCount: Int!
   media: [Media!]!
   mediaCount: Int!
@@ -102,12 +104,23 @@ type CommentPage {
   nextBefore: ID
 }
 
+type TrendingItem {
+  rank: Int!
+  item: ContentItem!
+}
+
+type TrendingPage {
+  computedAt: DateTime
+  items: [TrendingItem!]!
+}
+
 type Query {
   tiers: [Tier!]!
   feed(filter: FeedFilter, first: Int = 20, after: String): ContentConnection!
   content(id: ID!): ContentItem
   creator(id: ID!): Creator
   contentComments(contentId: ID!, limit: Int = 50, before: ID): CommentPage!
+  trending(limit: Int = 10, accessibleOnly: Boolean = false): TrendingPage!
 }
 
 # TODO(future): Mutations (writes currently handled via REST: register, login, create content, subscribe, media uploads)

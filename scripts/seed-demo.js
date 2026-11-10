@@ -11,7 +11,9 @@ const { execSync } = require('child_process');
 const env = require('../src/config/env');
 
 if (env.NODE_ENV === 'production' && !env.ALLOW_DEMO_SEED) {
-  console.error('[SeedDemo] Refused: Cannot seed demo data in production without ALLOW_DEMO_SEED=true');
+  console.error(
+    '[SeedDemo] Refused: Cannot seed demo data in production without ALLOW_DEMO_SEED=true'
+  );
   process.exit(1);
 }
 
@@ -26,4 +28,3 @@ try {
   console.error('[SeedDemo] Seeding failed:', err.message);
   process.exit(1);
 }
-

@@ -278,12 +278,36 @@ describe('Unit: accessService', () => {
       );
 
       // Assert each item's resolution
-      expect(resultMap.get('c-1')).toEqual({ hasAccess: true, viewerTier: 'pro', requiredTier: 'free' });
-      expect(resultMap.get('c-2')).toEqual({ hasAccess: true, viewerTier: 'pro', requiredTier: 'pro' });
-      expect(resultMap.get('c-3')).toEqual({ hasAccess: true, viewerTier: 'vip', requiredTier: 'pro' });
-      expect(resultMap.get('c-4')).toEqual({ hasAccess: true, viewerTier: 'vip', requiredTier: 'vip' });
-      expect(resultMap.get('c-5')).toEqual({ hasAccess: false, viewerTier: 'free', requiredTier: 'vip' });
-      expect(resultMap.get('c-6')).toEqual({ hasAccess: true, viewerTier: 'vip', requiredTier: 'vip' }); // Owner
+      expect(resultMap.get('c-1')).toEqual({
+        hasAccess: true,
+        viewerTier: 'pro',
+        requiredTier: 'free'
+      });
+      expect(resultMap.get('c-2')).toEqual({
+        hasAccess: true,
+        viewerTier: 'pro',
+        requiredTier: 'pro'
+      });
+      expect(resultMap.get('c-3')).toEqual({
+        hasAccess: true,
+        viewerTier: 'vip',
+        requiredTier: 'pro'
+      });
+      expect(resultMap.get('c-4')).toEqual({
+        hasAccess: true,
+        viewerTier: 'vip',
+        requiredTier: 'vip'
+      });
+      expect(resultMap.get('c-5')).toEqual({
+        hasAccess: false,
+        viewerTier: 'free',
+        requiredTier: 'vip'
+      });
+      expect(resultMap.get('c-6')).toEqual({
+        hasAccess: true,
+        viewerTier: 'vip',
+        requiredTier: 'vip'
+      }); // Owner
     });
   });
 
@@ -318,7 +342,10 @@ describe('Unit: accessService', () => {
       expect(access1.viewerTier).toBe('pro');
 
       const post2Locked = { id: 'p-2', creatorId: 'creator-1', minTier: 'vip' };
-      const access2 = await accessService.resolveAccessFromProfile({ profile, content: post2Locked });
+      const access2 = await accessService.resolveAccessFromProfile({
+        profile,
+        content: post2Locked
+      });
       expect(access2.hasAccess).toBe(false);
     });
   });
@@ -349,4 +376,3 @@ describe('Unit: accessService', () => {
     });
   });
 });
-

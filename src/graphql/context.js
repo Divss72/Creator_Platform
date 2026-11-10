@@ -85,7 +85,7 @@ const buildContext = async ({ req }) => {
   }
 
   // Per-request loaders
-  const loaders = createLoaders();
+  const loaders = createLoaders(viewer);
 
   // Memoized helpers for access profile and tiers
   let accessProfilePromise = null;

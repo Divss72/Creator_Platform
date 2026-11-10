@@ -4,12 +4,15 @@ const DataLoader = require('dataloader');
 const userStore = require('../store/userStore');
 const commentStore = require('../store/commentStore');
 const mediaStore = require('../store/mediaStore');
+const reactionStore = require('../store/reactionStore');
 
 /**
  * Instantiate fresh DataLoaders per request.
  * Never share DataLoader instances across requests to prevent data leakage and stale caching.
  */
-const createLoaders = () => {
+const createLoaders = (viewer = null) => {
+  const viewerId = viewer ? viewer.id : null;
+
   // Batch creator profile lookups by user ID
   const creatorLoader = new DataLoader(async (creatorIds) => {
     const creatorMap = await userStore.findCreatorsByIds(creatorIds);
@@ -28,10 +31,17 @@ const createLoaders = () => {
     return contentIds.map((id) => mediaMap.get(id) || []);
   });
 
+  // Batch likes and likedByMe by content ID and viewer ID
+  const likesLoader = new DataLoader(async (contentIds) => {
+    const likesMap = await reactionStore.batchGetLikes(contentIds, viewerId);
+    return contentIds.map((id) => likesMap.get(id) || { likeCount: 0, likedByMe: false });
+  });
+
   return {
     creatorLoader,
     commentCountLoader,
-    mediaByContentIdLoader
+    mediaByContentIdLoader,
+    likesLoader
   };
 };
 

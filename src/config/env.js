@@ -8,6 +8,8 @@ dotenv.config();
 
 const DEFAULT_EXAMPLE_JWT_SECRET = 'super-secret-jwt-key-change-in-production-min32chars';
 const DEFAULT_EXAMPLE_EMAIL_TOKEN_SECRET = 'super-secret-email-token-key-change-in-prod-min32';
+const DEFAULT_EXAMPLE_ANALYTICS_HASH_SECRET =
+  'super-secret-analytics-hash-key-change-in-prod-min32';
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(5000),
@@ -114,10 +116,29 @@ const envSchema = z.object({
     .optional()
     .default(false)
     .transform((val) => val === true || val === 'true' || val === '1'),
-  APP_VERSION: z.string().default('0.8.0'),
+  APP_VERSION: z.string().default('1.0.0'),
   APP_COMMIT: z.string().default('unknown'),
   APP_BUILT_AT: z.string().default('unknown'),
-  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug', 'silent']).default('info')
+  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug', 'silent']).default('info'),
+
+  // v1.0 Analytics, Trending & Frontend
+  ANALYTICS_HASH_SECRET: z.string().default(DEFAULT_EXAMPLE_ANALYTICS_HASH_SECRET),
+  ROLLUP_CRON: z.string().default('15 2 * * *'),
+  TRENDING_CRON: z.string().default('*/15 * * * *'),
+  TRENDING_WINDOW_DAYS: z.coerce.number().default(30),
+  TRENDING_MAX_ITEMS: z.coerce.number().default(50),
+  TRENDING_WEIGHT_VIEWS: z.coerce.number().default(1),
+  TRENDING_WEIGHT_COMMENTS: z.coerce.number().default(2),
+  TRENDING_WEIGHT_LIKES: z.coerce.number().default(3),
+  TRENDING_GRAVITY: z.coerce.number().default(1.5),
+  SERVE_WEB: z
+    .union([z.boolean(), z.enum(['true', 'false', '1', '0'])])
+    .optional()
+    .default(false)
+    .transform((val) => val === true || val === 'true' || val === '1'),
+  CSP_CONNECT_EXTRA: z.string().optional().default(''),
+  CSP_IMG_EXTRA: z.string().optional().default(''),
+  DEMO_RESET_CONFIRM: z.string().optional()
 });
 
 /**
@@ -144,6 +165,16 @@ function validateEnv(rawEnv = {}) {
   // Check DIGEST_CRON format
   if (!cron.validate(config.DIGEST_CRON)) {
     errors.push(`Invalid DIGEST_CRON expression: "${config.DIGEST_CRON}"`);
+  }
+
+  // Check ROLLUP_CRON format
+  if (!cron.validate(config.ROLLUP_CRON)) {
+    errors.push(`Invalid ROLLUP_CRON expression: "${config.ROLLUP_CRON}"`);
+  }
+
+  // Check TRENDING_CRON format
+  if (!cron.validate(config.TRENDING_CRON)) {
+    errors.push(`Invalid TRENDING_CRON expression: "${config.TRENDING_CRON}"`);
   }
 
   // Check DIGEST_TIMEZONE
@@ -217,6 +248,14 @@ function validateEnv(rawEnv = {}) {
       errors.push('EMAIL_TOKEN_SECRET cannot be the default example value in production mode');
     }
 
+    // 5b. ANALYTICS_HASH_SECRET
+    if (config.ANALYTICS_HASH_SECRET.length < 32) {
+      errors.push('ANALYTICS_HASH_SECRET must be at least 32 characters in production mode');
+    }
+    if (config.ANALYTICS_HASH_SECRET === DEFAULT_EXAMPLE_ANALYTICS_HASH_SECRET) {
+      errors.push('ANALYTICS_HASH_SECRET cannot be the default example value in production mode');
+    }
+
     // 6. MAIL_DRIVER check: if smtp, credentials required
     if (config.MAIL_DRIVER === 'smtp') {
       if (!config.SMTP_HOST) {
@@ -272,6 +311,8 @@ if (rawProcessEnv.NODE_ENV === 'test') {
     rawProcessEnv.JWT_SECRET || 'test-jwt-secret-for-jest-suites-minimum-32-chars';
   rawProcessEnv.EMAIL_TOKEN_SECRET =
     rawProcessEnv.EMAIL_TOKEN_SECRET || 'test-email-token-secret-for-jest-suites-minimum-32-chars';
+  rawProcessEnv.ANALYTICS_HASH_SECRET =
+    rawProcessEnv.ANALYTICS_HASH_SECRET || 'test-analytics-hash-secret-minimum-32-chars';
 }
 
 const validation = validateEnv(rawProcessEnv);
@@ -290,7 +331,8 @@ const env = {
   ...validation.config,
   validateEnv,
   DEFAULT_EXAMPLE_JWT_SECRET,
-  DEFAULT_EXAMPLE_EMAIL_TOKEN_SECRET
+  DEFAULT_EXAMPLE_EMAIL_TOKEN_SECRET,
+  DEFAULT_EXAMPLE_ANALYTICS_HASH_SECRET
 };
 
 module.exports = Object.freeze(env);
