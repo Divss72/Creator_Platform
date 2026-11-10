@@ -16,6 +16,7 @@ module.exports = {
     const subCId = 'c0000003-cccc-4ccc-8ccc-cccccccccccc'; // Subscriber C (No subscriptions)
     const subDId = 'd0000004-dddd-4ddd-8ddd-dddddddddddd'; // Subscriber D (Cancelled sub to Charlie)
     const subEId = 'e0000005-eeee-4eee-8eee-eeeeeeeeeeee'; // Subscriber E (Expired sub to Charlie)
+    const subFId = 'f0000006-ffff-4fff-8fff-ffffffffffff'; // Subscriber F (Opt-out subscriber)
 
     const freeTierId = '11111111-1111-4111-8111-111111111111';
     const proTierId = '22222222-2222-4222-8222-222222222222';
@@ -83,6 +84,17 @@ module.exports = {
         email: 'sube.expired@creatorhub.local',
         password_hash: passwordHash,
         role: 'subscriber',
+        created_at: now,
+        updated_at: now
+      },
+      {
+        id: subFId,
+        name: 'Subscriber F (Opt-out)',
+        email: 'subf.optout@creatorhub.local',
+        password_hash: passwordHash,
+        role: 'subscriber',
+        notify_new_posts: false,
+        notify_weekly_digest: false,
         created_at: now,
         updated_at: now
       }
@@ -305,6 +317,18 @@ module.exports = {
         subscriber_id: subAId,
         creator_id: aliceId,
         tier_id: vipTierId,
+        status: 'active',
+        started_at: now,
+        ends_at: null,
+        created_at: now,
+        updated_at: now
+      },
+      // Subscriber F: Pro subscription to Alice (Creator 1) but opt-out
+      {
+        id: 'ff666666-ffff-4fff-8fff-ffffffffffff',
+        subscriber_id: subFId,
+        creator_id: aliceId,
+        tier_id: proTierId,
         status: 'active',
         started_at: now,
         ends_at: null,

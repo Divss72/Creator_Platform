@@ -21,7 +21,9 @@ const suites = [
   { name: 'Realtime Sockets & Chat (v0.4)', script: 'scripts/verify-realtime.js', needsServer: true },
   { name: 'GraphQL Feed & Pagination (v0.5)', script: 'scripts/verify-graphql.js', needsServer: true },
   { name: 'Media Uploads & Storage (v0.6)', script: 'scripts/verify-media.js', needsServer: false },
-  { name: 'Security & Hardening (v0.6)', script: 'scripts/verify-security.js', needsServer: false }
+  { name: 'Security & Hardening (v0.6)', script: 'scripts/verify-security.js', needsServer: false },
+  { name: 'Email Notifications & Outbox (v0.7)', script: 'scripts/verify-email.js', needsServer: false },
+  { name: 'Firebase Live Metrics (v0.7)', script: 'scripts/verify-firebase.js', needsServer: false }
 ];
 
 function runScript(scriptPath, extraEnv = {}) {

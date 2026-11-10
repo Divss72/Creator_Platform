@@ -323,6 +323,42 @@ const contentStore = {
   async delete(id) {
     const deletedCount = await Content.destroy({ where: { id } });
     return deletedCount > 0;
+  },
+
+  /**
+   * Find recent posts by creators published since a given date.
+   * Used by weekly digest generator.
+   *
+   * @param {Object} params
+   * @param {string[]} params.creatorIds
+   * @param {Date} params.since
+   * @param {number} [params.limit=100]
+   * @returns {Promise<Array<{ id: string, creatorId: string, title: string, minTier: string, minTierRank: number, createdAt: Date }>>}
+   */
+  async findRecentPostsByCreators({ creatorIds, since, limit = 100 }) {
+    if (!creatorIds || creatorIds.length === 0) return [];
+
+    const posts = await Content.findAll({
+      where: {
+        creatorId: { [Op.in]: creatorIds },
+        createdAt: { [Op.gte]: since }
+      },
+      include: [{ model: Tier, as: 'minTier', attributes: ['name', 'rank'] }],
+      order: [['createdAt', 'DESC']],
+      limit
+    });
+
+    return posts.map((p) => {
+      const plain = p.get({ plain: true });
+      return {
+        id: plain.id,
+        creatorId: plain.creatorId,
+        title: plain.title,
+        minTier: plain.minTier ? plain.minTier.name : 'free',
+        minTierRank: plain.minTier ? plain.minTier.rank : 0,
+        createdAt: plain.createdAt
+      };
+    });
   }
 };
 

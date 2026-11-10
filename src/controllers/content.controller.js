@@ -8,6 +8,7 @@ const ApiError = require('../utils/apiError');
 const realtimeEvents = require('../realtime/events');
 const { formatContentItem } = require('../presenters/contentPresenter');
 const { sanitizeRichText, cleanPlainText } = require('../services/sanitizeService');
+const { emitContentCreated } = require('../events/domainEvents');
 
 /**
  * Create content (Creator only)
@@ -31,6 +32,16 @@ const createContent = async (req, res) => {
     hasAccess: true,
     viewerTier: 'vip',
     mediaItems: []
+  });
+
+  // Emit domain event for side effects (new post email fan-out)
+  emitContentCreated({
+    contentId: content.id,
+    creatorId: req.user.id,
+    title: cleanedTitle,
+    minTier,
+    excerpt: formatted.excerpt || '',
+    publishedAt: content.createdAt
   });
 
   res.status(201).json({

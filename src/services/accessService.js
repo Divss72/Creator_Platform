@@ -1,5 +1,6 @@
 const tierStore = require('../store/tierStore');
 const subscriptionStore = require('../store/subscriptionStore');
+const { isActiveSubscription } = require('../utils/subscriptionStatus');
 
 /**
  * Pure function: returns true if viewerRank is sufficient for requiredRank
@@ -121,7 +122,7 @@ const resolveViewerTier = async ({ viewerId, creatorId }) => {
     const sub = await subscriptionStore.findBySubscriberAndCreator(viewerId, creatorId);
     const now = new Date();
 
-    if (sub && sub.status === 'active' && (!sub.endsAt || sub.endsAt > now)) {
+    if (sub && isActiveSubscription(sub, now)) {
       return {
         tier: sub.tier,
         rank: sub.tierRank,
@@ -221,7 +222,28 @@ const resolveAccessBulk = async ({ viewer, contents }) => {
   return resultMap;
 };
 
+/**
+ * Paged fan-out query that returns active subscribers whose tier rank >= requiredRank.
+ * Used by new-post email fan-out. Never leaks inactive or under-tiered users.
+ *
+ * @param {Object} params
+ * @param {string} params.creatorId
+ * @param {number} [params.requiredRank=0]
+ * @param {string} [params.afterUserId]
+ * @param {number} [params.limit=100]
+ * @returns {Promise<Array<{ userId: string, email: string, name: string, tierName: string, tierRank: number }>>}
+ */
+const getEligibleSubscribers = async ({ creatorId, requiredRank = 0, afterUserId, limit = 100 }) => {
+  return subscriptionStore.findEligibleSubscribers({
+    creatorId,
+    minTierRank: requiredRank,
+    afterUserId,
+    limit
+  });
+};
+
 module.exports = {
+  getEligibleSubscribers,
   canAccess,
   getViewerAccessProfile,
   resolveAccessFromProfile,

@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const { sequelize, Subscription, Tier, User, CreatorProfile } = require('../models');
+const { isActiveSubscription } = require('../utils/subscriptionStatus');
 
 const formatSubscription = (instance) => {
   if (!instance) return null;
@@ -149,7 +150,7 @@ const subscriptionStore = {
 
       // Existing subscription check
       const isSameTier = existing.tierId === tier.id;
-      const isActive = existing.status === 'active' && (!existing.endsAt || existing.endsAt > now);
+      const isActive = isActiveSubscription(existing, now);
 
       if (isSameTier && isActive) {
         // Idempotent: same tier and active
@@ -159,6 +160,14 @@ const subscriptionStore = {
           isNew: false,
           statusCode: 200
         };
+      }
+
+      const previousTier = existing.tier ? existing.tier.name : null;
+      let action = 'upgraded';
+      if (!isActive) {
+        action = 'reactivated';
+      } else if (existing.tier && tier.rank < existing.tier.rank) {
+        action = 'downgraded';
       }
 
       // Upgrade, downgrade, or re-activate cancelled/expired
@@ -247,6 +256,134 @@ const subscriptionStore = {
     });
 
     return subscriptions.map(formatSubscription);
+  },
+
+  /**
+   * Paged query of active subscribers eligible for new post notifications.
+   * Only includes subscribers with active subscriptions and notifyNewPosts = true.
+   *
+   * @param {Object} params
+   * @param {string} params.creatorId
+   * @param {number} [params.minTierRank=0]
+   * @param {string} [params.afterUserId]
+   * @param {number} [params.limit=100]
+   * @returns {Promise<Array<{ userId: string, email: string, name: string, tierName: string, tierRank: number }>>}
+   */
+  async findEligibleSubscribers({ creatorId, minTierRank = 0, afterUserId, limit = 100 }) {
+    if (!creatorId) return [];
+    const now = new Date();
+    const where = {
+      creatorId,
+      status: 'active',
+      [Op.or]: [{ endsAt: null }, { endsAt: { [Op.gt]: now } }]
+    };
+    if (afterUserId) {
+      where.subscriberId = { [Op.gt]: afterUserId };
+    }
+
+    const subscriptions = await Subscription.findAll({
+      where,
+      include: [
+        {
+          model: Tier,
+          as: 'tier',
+          where: {
+            rank: { [Op.gte]: minTierRank }
+          }
+        },
+        {
+          model: User,
+          as: 'subscriber',
+          where: {
+            notifyNewPosts: true
+          },
+          attributes: ['id', 'email', 'name']
+        }
+      ],
+      order: [['subscriberId', 'ASC']],
+      limit
+    });
+
+    return subscriptions.map((s) => ({
+      userId: s.subscriber.id,
+      email: s.subscriber.email,
+      name: s.subscriber.name,
+      tierName: s.tier.name,
+      tierRank: s.tier.rank
+    }));
+  },
+
+  /**
+   * Count active subscriptions for a creator grouped by tier name.
+   * Single source of truth for Firebase Realtime Database metrics.
+   *
+   * @param {string} creatorId
+   * @returns {Promise<{ total: number, byTier: { free: number, pro: number, vip: number } }>}
+   */
+  async countActiveByCreatorGroupedByTier(creatorId) {
+    const byTier = { free: 0, pro: 0, vip: 0 };
+    if (!creatorId) return { total: 0, byTier };
+
+    const tiers = await Tier.findAll();
+    const tierMap = new Map(tiers.map((t) => [t.id, t.name]));
+
+    const now = new Date();
+    const rows = await Subscription.findAll({
+      where: {
+        creatorId,
+        status: 'active',
+        [Op.or]: [{ endsAt: null }, { endsAt: { [Op.gt]: now } }]
+      },
+      attributes: ['tierId', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+      group: ['tierId'],
+      raw: true
+    });
+
+    let total = 0;
+    for (const r of rows) {
+      const name = (tierMap.get(r.tierId) || '').toLowerCase();
+      const count = parseInt(r.count, 10) || 0;
+      if (name in byTier) {
+        byTier[name] = count;
+      }
+      total += count;
+    }
+
+    return { total, byTier };
+  },
+
+  /**
+   * Get all creators a subscriber actively follows (for weekly digest).
+   *
+   * @param {string} subscriberId
+   * @returns {Promise<Array<{ creatorId: string, creatorName: string, tierName: string, tierRank: number }>>}
+   */
+  async findActiveCreatorsBySubscriber(subscriberId) {
+    if (!subscriberId) return [];
+    const now = new Date();
+    const subs = await Subscription.findAll({
+      where: {
+        subscriberId,
+        status: 'active',
+        [Op.or]: [{ endsAt: null }, { endsAt: { [Op.gt]: now } }]
+      },
+      include: [
+        { model: Tier, as: 'tier', attributes: ['name', 'rank'] },
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'name'],
+          include: [{ model: CreatorProfile, as: 'profile', attributes: ['displayName'] }]
+        }
+      ]
+    });
+
+    return subs.map((s) => ({
+      creatorId: s.creatorId,
+      creatorName: s.creator ? (s.creator.profile ? s.creator.profile.displayName : s.creator.name) : 'Creator',
+      tierName: s.tier ? s.tier.name : 'free',
+      tierRank: s.tier ? s.tier.rank : 0
+    }));
   }
 };
 

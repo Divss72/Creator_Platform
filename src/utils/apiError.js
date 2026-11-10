@@ -61,6 +61,10 @@ class ApiError extends Error {
     return new ApiError(429, 'RATE_LIMITED', message, details);
   }
 
+  static featureDisabled(message = 'Feature is disabled', details = null) {
+    return new ApiError(503, 'FEATURE_DISABLED', message, details);
+  }
+
   static internal(message = 'Internal server error', code = 'INTERNAL_ERROR') {
     return new ApiError(500, code, message);
   }

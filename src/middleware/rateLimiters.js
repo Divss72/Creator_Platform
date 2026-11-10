@@ -85,11 +85,26 @@ const graphqlLimiter = createLimiter({
   max: RATE_LIMITS.GRAPHQL.MAX_REQUESTS
 });
 
+// 7. Unsubscribe limiter: 30 requests / 1 hr per IP
+const unsubscribeLimiter = createLimiter({
+  windowMs: RATE_LIMITS.UNSUBSCRIBE.WINDOW_MS,
+  max: RATE_LIMITS.UNSUBSCRIBE.MAX_REQUESTS
+});
+
+// 8. Firebase custom token minting limiter: 10 requests / 15 mins per user ID
+const firebaseTokenLimiter = createLimiter({
+  windowMs: RATE_LIMITS.FIREBASE_TOKEN.WINDOW_MS,
+  max: RATE_LIMITS.FIREBASE_TOKEN.MAX_REQUESTS,
+  keyGenerator: (req) => (req.user && req.user.id ? `fb_token:${req.user.id}` : `fb_token:${getClientIp(req)}`)
+});
+
 module.exports = {
   globalLimiter,
   authRegisterLimiter,
   authLoginLimiter,
   userWritesLimiter,
   mediaUploadLimiter,
-  graphqlLimiter
+  graphqlLimiter,
+  unsubscribeLimiter,
+  firebaseTokenLimiter
 };

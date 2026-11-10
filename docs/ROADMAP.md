@@ -8,8 +8,8 @@ A subscription platform where creators publish tiered content (Free / Pro / VIP)
 | **v0.2** | **MySQL + Sequelize** | Schema, associations, move CRUD to database, seed script | **Completed** |
 | **v0.3** | **Subscriptions + paywall** | Mock subscribe, tier ranking (Free < Pro < VIP), `requireTier` middleware, preview vs full content | **Completed** |
 | **v0.4** | **Socket.io** | Live comments per post, viewer count, JWT-authenticated sockets, tier-gated rooms | **Completed** |
-| **v0.5** | **GraphQL** | Content feed filtered by tier and creator | Upcoming |
-| **v0.6** | **Media + security** | Cloudinary uploads, rich-text XSS sanitisation, helmet, rate limiting | Upcoming |
+| **v0.5** | **GraphQL** | Content feed filtered by tier and creator | **Completed** |
+| **v0.6** | **Media + security** | Cloudinary uploads, rich-text XSS sanitisation, helmet, rate limiting | **Completed** |
 | **v0.7** | **Email + Firebase** | Welcome / new-post / weekly digest emails, live subscriber count | Upcoming |
 | **v0.8** | **Tests + CI/CD** | Integration and unit tests, health check, auto-deploy | Upcoming |
 | **v1.0** | **Analytics & Launch** | Analytics dashboard, trending algorithm, final demo | Upcoming |

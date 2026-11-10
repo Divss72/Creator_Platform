@@ -1,6 +1,8 @@
 'use strict';
 
-const { userStore } = require('../store');
+const env = require('../config/env');
+const { userStore, subscriptionStore } = require('../store');
+const { getFirebaseDriver } = require('../services/firebase');
 const ApiError = require('../utils/apiError');
 
 /**
@@ -53,7 +55,46 @@ const updateMyProfile = async (req, res) => {
   });
 };
 
+/**
+ * Mint a Firebase custom auth token for the authenticated creator
+ * GET /api/creators/me/firebase-token
+ */
+const getFirebaseToken = async (req, res) => {
+  if (req.user.role !== 'creator') {
+    throw ApiError.forbidden('Only creators can access realtime dashboard tokens');
+  }
+
+  const driver = getFirebaseDriver();
+  const token = await driver.createCustomToken(req.user.id, { role: 'creator' });
+
+  res.status(200).json({
+    token,
+    databaseUrl: env.FIREBASE_DATABASE_URL,
+    path: `creatorStats/${req.user.id}`
+  });
+};
+
+/**
+ * REST fallback: Get live subscriber metrics directly from MySQL
+ * GET /api/creators/me/dashboard/subscribers
+ */
+const getDashboardSubscribers = async (req, res) => {
+  if (req.user.role !== 'creator') {
+    throw ApiError.forbidden('Only creators can view subscriber metrics');
+  }
+
+  const metrics = await subscriptionStore.countActiveByCreatorGroupedByTier(req.user.id);
+
+  res.status(200).json({
+    subscriberCount: metrics.total,
+    byTier: metrics.byTier,
+    updatedAt: new Date().toISOString()
+  });
+};
+
 module.exports = {
   getCreatorProfile,
-  updateMyProfile
+  updateMyProfile,
+  getFirebaseToken,
+  getDashboardSubscribers
 };

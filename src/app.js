@@ -90,6 +90,76 @@ if (isDev) {
       res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'Fake driver failure hook not available' } });
     });
   }
+
+  // Dev Mail endpoints
+  const { logDriver } = require('./services/mail');
+  app.get('/dev/mail', (req, res) => {
+    res.json({
+      driver: env.MAIL_DRIVER,
+      sent: logDriver.getSent()
+    });
+  });
+
+  app.get('/dev/mail/:id/html', (req, res) => {
+    const sent = logDriver.getSent();
+    const item = sent.find((m) => m.messageId === req.params.id || m.messageId === `<${req.params.id}>`);
+    if (!item || !item.html) {
+      return res.status(404).send('Email or HTML preview not found');
+    }
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(item.html);
+  });
+
+  app.post('/dev/mail/fail-next', (req, res) => {
+    const count = parseInt(req.body.count, 10) || 1;
+    logDriver.simulateFailNext(count);
+    res.json({ status: 'ok', failNextCount: count });
+  });
+
+  app.post('/dev/mail/fail-all', (req, res) => {
+    const fail = req.body.fail !== undefined ? Boolean(req.body.fail) : true;
+    logDriver.simulateFailAll(fail);
+    res.json({ status: 'ok', failAll: fail });
+  });
+
+  app.post('/dev/mail/clear', (req, res) => {
+    logDriver.clear();
+    res.json({ status: 'ok', cleared: true });
+  });
+
+  // Dev Firebase endpoints
+  const { fakeDriver } = require('./services/firebase');
+  app.get('/dev/firebase', (req, res) => {
+    res.json({
+      driver: env.FIREBASE_DRIVER,
+      tree: fakeDriver.tree,
+      writeCount: fakeDriver.getWriteCount()
+    });
+  });
+
+  app.post('/dev/firebase/set', async (req, res) => {
+    const { path: p, value } = req.body;
+    if (!p) return res.status(400).json({ error: 'path required' });
+    const result = await fakeDriver.set(p, value);
+    res.json({ status: 'ok', result });
+  });
+
+  app.post('/dev/firebase/fail-next', (req, res) => {
+    const count = parseInt(req.body.count, 10) || 1;
+    fakeDriver.simulateFailNext(count);
+    res.json({ status: 'ok', failNextCount: count });
+  });
+
+  app.post('/dev/firebase/fail-all', (req, res) => {
+    const fail = req.body.fail !== undefined ? Boolean(req.body.fail) : true;
+    fakeDriver.simulateFailAll(fail);
+    res.json({ status: 'ok', failAll: fail });
+  });
+
+  app.post('/dev/firebase/clear', (req, res) => {
+    fakeDriver.clear();
+    res.json({ status: 'ok', cleared: true });
+  });
 }
 
 // Dedicated router for GraphQL mounted before 404 handler

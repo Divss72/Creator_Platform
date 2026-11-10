@@ -158,3 +158,38 @@
 - **Paywall Parity on Media**: When a post is locked, `media` is `[]`, `mediaCount` is visible, and Cloudinary `public_id` is never revealed to any client.
 - **Atomic Concurrency Protection**: Multi-attachment limits ($\le 5$) and creator storage quotas ($\le 200$ MB) are guarded with database transactions and `SELECT ... FOR UPDATE` row locks to prevent race condition over-allocation.
 - **Dual-Class Text Safety**: Distinguishes rich-text (post bodies, sanitized via `sanitize-html`) from plain-text (titles, names, comments, bios, which strictly reject tag-like syntax while permitting mathematical symbols like `<3` and `<`).
+
+### v0.7: Email + Firebase Subscriptions Mirror (Completed)
+- [x] Implementation plan approved
+- [x] Installed `nodemailer`, `node-cron`, and `firebase-admin`
+- [x] Database migrations: `20261109000001-add-notification-preferences-to-users` (`notify_new_posts`, `notify_weekly_digest`) and `20261109000002-create-email-outbox` (`email_outbox` table)
+- [x] Tested clean rollback and re-apply of both migrations
+- [x] Defined `EmailOutbox` model in `src/models/EmailOutbox.js` and updated `User` model
+- [x] Created `src/utils/subscriptionStatus.js` single source of truth for active subscription calculation
+- [x] Mail driver abstraction in `src/services/mail/` (`index.js`, `logDriver.js`, `smtpDriver.js`, templates for `welcome`, `newPost`, `digest`)
+- [x] Firebase driver abstraction in `src/services/firebase/` (`index.js`, `fakeDriver.js`, `firebaseDriver.js`)
+- [x] In-process domain events bus (`src/events/domainEvents.js`, `src/events/listeners.js`) with non-blocking try/catch listeners
+- [x] Emitted `subscription.changed` and `content.created` domain events from controllers after DB transaction commits
+- [x] Transactional outbox store in `src/store/outboxStore.js` with `SELECT ... FOR UPDATE SKIP LOCKED` and stuck row recovery
+- [x] Notification service in `src/services/notificationService.js` handling email enqueuing, recipient abuse caps, and HMAC-SHA256 tokens
+- [x] Send-time access revocation check in outbox worker, guaranteeing zero data leakage if subscription status changes prior to delivery
+- [x] Weekly digest generator in `src/services/digestService.js` with ISO-week deduplication (`digest:${userId}:${isoWeek}`)
+- [x] Firebase synchronization service in `src/services/firebaseSyncService.js` with event debouncing (`FIREBASE_SYNC_DEBOUNCE_MS`), exponential retries, and hourly reconciliation
+- [x] Background cron and worker infrastructure in `src/jobs/` (`emailWorker.js`, `purgeJob.js`, `digestJob.js`, `firebaseReconcileJob.js`, `index.js`)
+- [x] Notification preferences endpoints (`GET/PUT /api/notifications/preferences`) and public RFC 8058 one-click unsubscribe (`GET/POST /api/email/unsubscribe?token=...`) with `unsubscribeLimiter`
+- [x] Creator dashboard endpoints (`GET /api/creators/me/firebase-token`, `GET /api/creators/me/dashboard/subscribers`)
+- [x] Firebase declarative security rules in `firebase/database.rules.json` (read restricted to matching `auth.uid`, client writes disabled)
+- [x] Dev endpoints in `src/app.js`: `/dev/mail`, `/dev/firebase`
+- [x] Mailpit service added to `docker-compose.yml` for local SMTP inspection
+- [x] CLI tools: `scripts/digest-run.js`, `scripts/email-status.js`, `scripts/firebase-resync.js`
+- [x] Verification suites: `scripts/verify-email.js` (33/33 checks passed) and `scripts/verify-firebase.js` (29/29 checks passed)
+- [x] Full regression run via `scripts/verify-all.js` (all 8 platform suites passed cleanly: 360/360 checks)
+- [x] Full documentation: `docs/NOTIFICATIONS.md`, `docs/FIREBASE.md`, `docs/PR-v0.7.md`, updated `docs/DB-SCHEMA.md`, `docs/SECURITY.md`, `README.md`, `requests.http`
+
+#### Notes & Decisions (v0.7):
+- **Side-Effect Isolation**: Email enqueuing and Firebase synchronization run strictly as asynchronous side effects. Failures in SMTP or Firebase never roll back database transactions or fail client REST/GraphQL/Socket requests.
+- **Transactional Outbox & Send-Time Checks**: Emails are persisted into the `email_outbox` table. Before sending, the worker re-evaluates the recipient's tier access; if the subscription was cancelled in the interim, the email is skipped with reason `access_revoked`, preventing body/excerpt leakage.
+- **Zero Raw Body Leakage**: New post notifications use sanitized plain-text excerpts derived via `sanitizeService`, never raw HTML or secret post bodies.
+- **Write Debouncing & Coalescing**: Rapid bursts of subscription changes are coalesced within a configurable debounce buffer (`FIREBASE_SYNC_DEBOUNCE_MS`, default 1000ms), writing to Firebase Realtime Database at most once per debounce window per creator.
+- **Stateless HMAC Unsubscribe**: One-click unsubscribe links and headers use HMAC-SHA256 signatures with 30-day expiration, eliminating the need for separate unsubscribe database tables.
+

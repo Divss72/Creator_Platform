@@ -262,7 +262,8 @@ async function run() {
       CLOUDINARY_CLOUD_NAME: 'test_cloud',
       CLOUDINARY_API_KEY: 'test_key',
       CLOUDINARY_API_SECRET: 'test_secret',
-      JWT_SECRET: 'a-very-long-production-jwt-secret-that-is-at-least-32-chars!'
+      JWT_SECRET: 'a-very-long-production-jwt-secret-that-is-at-least-32-chars!',
+      EMAIL_TOKEN_SECRET: 'a-very-long-production-email-secret-that-is-at-least-32-chars!'
     });
 
     try {
