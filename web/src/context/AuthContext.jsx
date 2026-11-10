@@ -7,31 +7,31 @@ export const DEMO_PERSONAS = [
   {
     role: 'Creator',
     name: 'Alice (VIP)',
-    email: 'alice@demo.creatorhub.test',
+    email: 'alice.creator@creatorhub.local',
     password: 'Password123!'
   },
   {
     role: 'Creator',
     name: 'Bob (Tech)',
-    email: 'bob@demo.creatorhub.test',
+    email: 'bob.creator@creatorhub.local',
     password: 'Password123!'
   },
   {
     role: 'Creator',
     name: 'Charlie (Art)',
-    email: 'charlie@demo.creatorhub.test',
+    email: 'charlie.creator@creatorhub.local',
     password: 'Password123!'
   },
   {
     role: 'Fan',
     name: 'VIP Subscriber',
-    email: 'sub_alice_vip_1@demo.creatorhub.test',
+    email: 'suba.vip@creatorhub.local',
     password: 'Password123!'
   },
   {
     role: 'Fan',
     name: 'Free Fan',
-    email: 'sub_alice_free_1@demo.creatorhub.test',
+    email: 'subc.free@creatorhub.local',
     password: 'Password123!'
   }
 ];

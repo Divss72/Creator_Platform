@@ -61,7 +61,7 @@ const authRegisterLimiter = createLimiter({
 // 3. Auth login limiter: 10 FAILED attempts / 15 mins per IP (successful logins not counted)
 const authLoginLimiter = createLimiter({
   windowMs: RATE_LIMITS.AUTH_LOGIN.WINDOW_MS,
-  max: RATE_LIMITS.AUTH_LOGIN.MAX_FAILED_ATTEMPTS,
+  max: env.NODE_ENV === 'development' ? 200 : RATE_LIMITS.AUTH_LOGIN.MAX_FAILED_ATTEMPTS,
   skipSuccessfulRequests: true
 });
 
