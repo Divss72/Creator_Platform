@@ -144,13 +144,13 @@ _(In development, you can also run Vite hot-reloading dev server on `http://loca
 
 The application includes pre-configured demo accounts loaded with 45 days of engagement data:
 
-| Role        | Name             | Email                                   | Password       | Details                                           |
-| :---------- | :--------------- | :-------------------------------------- | :------------- | :------------------------------------------------ |
-| **Creator** | Alice Vance      | `alice@demo.creatorhub.test`            | `Password123!` | VIP Creator with full 45-day analytics history    |
-| **Creator** | Bob Tech         | `bob@demo.creatorhub.test`              | `Password123!` | Pro Creator with tech tutorials                   |
-| **Creator** | Charlie Creative | `charlie@demo.creatorhub.test`          | `Password123!` | Free/Pro Creator with design stories              |
-| **Fan**     | VIP Subscriber   | `sub_alice_vip_1@demo.creatorhub.test`  | `Password123!` | Subscribed to Alice as VIP (unlocks VIP posts)    |
-| **Fan**     | Free Fan         | `sub_alice_free_1@demo.creatorhub.test` | `Password123!` | Subscribed as Free (sees paywall lock on Pro/VIP) |
+| Role        | Name             | Email                            | Password       | Details                                           |
+| :---------- | :--------------- | :------------------------------- | :------------- | :------------------------------------------------ |
+| **Creator** | Alice Vance      | `alice.creator@creatorhub.local` | `Password123!` | VIP Creator with full 45-day analytics history    |
+| **Creator** | Bob Tech         | `bob.creator@creatorhub.local`   | `Password123!` | Pro Creator with tech tutorials                   |
+| **Creator** | Charlie Creative | `charlie.creator@creatorhub.local` | `Password123!` | Free/Pro Creator with design stories              |
+| **Fan**     | VIP Subscriber   | `suba.vip@creatorhub.local`      | `Password123!` | Subscribed to Alice as VIP (unlocks VIP posts)    |
+| **Fan**     | Free Fan         | `subc.free@creatorhub.local`     | `Password123!` | Subscribed as Free (sees paywall lock on Pro/VIP) |
 
 > **Tip**: You can switch between personas instantly using the **Persona Switcher** dropdown in the navigation bar or on the `/login` page.
 
