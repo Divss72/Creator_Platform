@@ -28,4 +28,3 @@ function createSocketClient(port, { token = null, transports = ['websocket'] } =
 }
 
 module.exports = { createSocketClient };
-

@@ -400,4 +400,3 @@ describe('Integration: Subscription Flow & Paywall Transitions', () => {
     });
   });
 });
-

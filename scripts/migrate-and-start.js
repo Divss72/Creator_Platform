@@ -34,4 +34,3 @@ main().catch((err) => {
   console.error('[MigrateAndStart] Startup error:', err);
   process.exit(1);
 });
-

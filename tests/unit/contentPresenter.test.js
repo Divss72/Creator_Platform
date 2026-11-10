@@ -3,7 +3,8 @@
 const { generateExcerpt, formatContentItem } = require('../../src/presenters/contentPresenter');
 
 describe('Unit: contentPresenter', () => {
-  const publicExcerptText = 'Welcome to this post preview. This teaser is available to all readers.';
+  const publicExcerptText =
+    'Welcome to this post preview. This teaser is available to all readers.';
   const secretBodyMarker = 'TOP_SECRET_PRO_CONTENT_BODY_NEVER_LEAK_BEYOND_EXCERPT';
   const secretMediaUrl = 'https://res.cloudinary.com/demo/image/upload/v12345/top_secret.jpg';
   const fullBodyHtml = `<p>${publicExcerptText}</p><p>${'Long padding content '.repeat(20)}</p><p>${secretBodyMarker}</p>`;
@@ -52,7 +53,8 @@ describe('Unit: contentPresenter', () => {
 
   describe('generateExcerpt', () => {
     test('extracts plain text excerpt from rich HTML up to specified length', () => {
-      const html = '<h1>Headline</h1> <p>This is a paragraph with <b>bold text</b> and <a href="#">links</a>.</p>';
+      const html =
+        '<h1>Headline</h1> <p>This is a paragraph with <b>bold text</b> and <a href="#">links</a>.</p>';
       const excerpt = generateExcerpt(html, 50);
       expect(excerpt).toBe('Headline This is a paragraph with bold text and...');
     });

@@ -73,4 +73,3 @@ describe('Unit: subscriptionStatus (isActiveSubscription)', () => {
     expect(isActiveSubscription(sub, { now: baseTime })).toBe(true);
   });
 });
-

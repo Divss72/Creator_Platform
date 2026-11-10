@@ -60,7 +60,10 @@ module.exports = async function globalSetup() {
       stdio: 'pipe'
     });
   } catch (err) {
-    console.error('[globalSetup] Error running migrations/seeds on test DB:', err.stdout?.toString() || err.message);
+    console.error(
+      '[globalSetup] Error running migrations/seeds on test DB:',
+      err.stdout?.toString() || err.message
+    );
     throw err;
   }
 };

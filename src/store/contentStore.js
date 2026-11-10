@@ -310,6 +310,24 @@ const contentStore = {
   },
 
   /**
+   * Find multiple content items by array of IDs.
+   *
+   * @param {string[]} ids
+   * @returns {Promise<Array<Object>>}
+   */
+  async findByIds(ids = []) {
+    if (!ids || ids.length === 0) return [];
+    const items = await Content.findAll({
+      where: { id: { [Op.in]: ids } },
+      include: [
+        { model: Tier, as: 'minTier', attributes: ['name', 'rank', 'priceCents'] },
+        creatorInclude
+      ]
+    });
+    return items.map(formatContent);
+  },
+
+  /**
    * Find recent posts by creators published since a given date.
    * Used by weekly digest generator.
    *

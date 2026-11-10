@@ -26,4 +26,3 @@ describe('Integration: Health & Version Gate', () => {
     expect(resWrongToken.status).toBe(404);
   });
 });
-

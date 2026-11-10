@@ -48,14 +48,16 @@ describe('Unit: sanitizeService', () => {
 
     test('strips javascript: and data: pseudo-protocols on <a> tags', () => {
       const jsLink = '<a href="javascript:alert(1)">Click Me</a>';
-      const dataLink = '<a href="data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==">Click Me</a>';
+      const dataLink =
+        '<a href="data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==">Click Me</a>';
 
       expect(sanitizeRichText(jsLink)).not.toContain('javascript:');
       expect(sanitizeRichText(dataLink)).not.toContain('data:');
     });
 
     test('strips entity-encoded javascript: scheme on links', () => {
-      const encoded = '<a href="&#x6A;&#x61;&#x76;&#x61;&#x73;&#x63;&#x72;&#x69;&#x70;&#x74;:alert(1)">Click</a>';
+      const encoded =
+        '<a href="&#x6A;&#x61;&#x76;&#x61;&#x73;&#x63;&#x72;&#x69;&#x70;&#x74;:alert(1)">Click</a>';
       const clean = sanitizeRichText(encoded);
       expect(clean).not.toContain('javascript');
       expect(clean).not.toContain('alert');
@@ -113,7 +115,8 @@ describe('Unit: sanitizeService', () => {
     });
 
     test('is strictly idempotent: sanitize(sanitize(x)) === sanitize(x)', () => {
-      const input = '<p>Check out <a href="https://site.org">this link</a> & <strong>bold text</strong></p>';
+      const input =
+        '<p>Check out <a href="https://site.org">this link</a> & <strong>bold text</strong></p>';
       const pass1 = sanitizeRichText(input);
       const pass2 = sanitizeRichText(pass1);
       const pass3 = sanitizeRichText(pass2);
@@ -184,7 +187,8 @@ describe('Unit: sanitizeService', () => {
   // =========================================================================
   describe('generatePlainTextExcerpt', () => {
     test('extracts clean plain text from rich HTML', () => {
-      const html = '<h2>Title</h2> <p>This is a <strong>rich</strong> text snippet with <a href="#">links</a>.</p>';
+      const html =
+        '<h2>Title</h2> <p>This is a <strong>rich</strong> text snippet with <a href="#">links</a>.</p>';
       const excerpt = generatePlainTextExcerpt(html, 100);
       expect(excerpt).toBe('Title This is a rich text snippet with links.');
     });
@@ -192,11 +196,12 @@ describe('Unit: sanitizeService', () => {
     test('collapses whitespace and decodes HTML entities', () => {
       const html = '<p>First &amp; Second&nbsp;&nbsp;&nbsp;Third &lt;tag&gt; &#39;quotes&#39;</p>';
       const excerpt = generatePlainTextExcerpt(html, 100);
-      expect(excerpt).toContain('First & Second Third ＜tag> \'quotes\'');
+      expect(excerpt).toContain("First & Second Third ＜tag> 'quotes'");
     });
 
     test('truncates at word boundary with ellipsis', () => {
-      const html = '<p>The quick brown fox jumps over the lazy dog and runs across the entire meadow.</p>';
+      const html =
+        '<p>The quick brown fox jumps over the lazy dog and runs across the entire meadow.</p>';
       const excerpt = generatePlainTextExcerpt(html, 30);
       expect(excerpt.endsWith('...')).toBe(true);
       expect(excerpt.length).toBeLessThanOrEqual(35);

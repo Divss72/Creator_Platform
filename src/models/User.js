@@ -39,6 +39,12 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: true,
         field: 'notify_weekly_digest'
+      },
+      isDemo: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        field: 'is_demo'
       }
     },
     {

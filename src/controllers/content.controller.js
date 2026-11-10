@@ -1,6 +1,6 @@
 'use strict';
 
-const { contentStore } = require('../store');
+const { contentStore, reactionStore, commentStore } = require('../store');
 const mediaStore = require('../store/mediaStore');
 const mediaService = require('../services/mediaService');
 const accessService = require('../services/accessService');
@@ -63,17 +63,29 @@ const listContent = async (req, res) => {
     contents: result.items
   });
 
-  // 2. Load all media for the page in ONE single batched query (no N+1)
+  // 2. Load media, likes, and comment counts for the page in parallel batched queries (no N+1)
   const contentIds = result.items.map((i) => i.id);
-  const mediaMap = await mediaStore.listByContentIds(contentIds);
+  const [mediaMap, likesMap, commentsMap] = await Promise.all([
+    mediaStore.listByContentIds(contentIds),
+    reactionStore.batchGetLikes(contentIds, req.user ? req.user.id : null),
+    commentStore.countByContentIds(contentIds)
+  ]);
 
   const items = result.items.map((item) => {
     const acc = accessMap.get(item.id) || { hasAccess: false, viewerTier: 'free' };
     const rawMedia = mediaMap.get(item.id) || [];
     const signedMedia = mediaService.signMediaList(rawMedia, acc.hasAccess);
+    const likeData = likesMap.get(item.id) || { likeCount: 0, likedByMe: false };
+    const commentCount = commentsMap.get(item.id) || 0;
 
     return formatContentItem({
-      item: { ...item, mediaCount: rawMedia.length },
+      item: {
+        ...item,
+        mediaCount: rawMedia.length,
+        likeCount: likeData.likeCount,
+        likedByMe: likeData.likedByMe,
+        commentCount
+      },
       hasAccess: acc.hasAccess,
       viewerTier: acc.viewerTier,
       mediaItems: signedMedia
@@ -103,13 +115,25 @@ const getContentById = async (req, res) => {
     content
   });
 
-  // Load media items for this post
-  const rawMedia = await mediaStore.findByContentId(id);
+  // Load media items, likes, and comment count in parallel
+  const [rawMedia, likeCount, likedByMe, commentCountsMap] = await Promise.all([
+    mediaStore.findByContentId(id),
+    reactionStore.getLikeCount(id),
+    reactionStore.isLikedBy(id, req.user ? req.user.id : null),
+    commentStore.countByContentIds([id])
+  ]);
   const signedMedia = mediaService.signMediaList(rawMedia, access.hasAccess);
+  const commentCount = commentCountsMap.get(id) || 0;
 
   // Locked item returns 200 with locked: true, body: null, media: [] (preview)
   const formatted = formatContentItem({
-    item: { ...content, mediaCount: rawMedia.length },
+    item: {
+      ...content,
+      mediaCount: rawMedia.length,
+      likeCount,
+      likedByMe,
+      commentCount
+    },
     hasAccess: access.hasAccess,
     viewerTier: access.viewerTier,
     mediaItems: signedMedia
@@ -209,10 +233,84 @@ const deleteContent = async (req, res) => {
   });
 };
 
+/**
+ * Record a post view (optionalAuth, responds 204 No Content)
+ */
+const recordView = async (req, res) => {
+  const { id } = req.params;
+  const ip = req.ip || (req.socket && req.socket.remoteAddress) || '127.0.0.1';
+  const userAgent = req.headers['user-agent'] || '';
+
+  const viewService = require('../services/viewService');
+  await viewService.recordPostView({
+    contentId: id,
+    viewer: req.user,
+    ip,
+    userAgent
+  });
+
+  res.status(204).send();
+};
+
+/**
+ * Like a post (authenticated, full access required)
+ */
+const likeContent = async (req, res) => {
+  const { id } = req.params;
+  const likeService = require('../services/likeService');
+
+  const result = await likeService.likePost({
+    contentId: id,
+    user: req.user
+  });
+
+  res.status(200).json(result);
+};
+
+/**
+ * Unlike a post (authenticated)
+ */
+const unlikeContent = async (req, res) => {
+  const { id } = req.params;
+  const likeService = require('../services/likeService');
+
+  const result = await likeService.unlikePost({
+    contentId: id,
+    user: req.user
+  });
+
+  res.status(200).json(result);
+};
+
+/**
+ * Get trending content leaderboard
+ */
+const getTrending = async (req, res) => {
+  const limit = req.query.limit ? parseInt(req.query.limit, 10) : 10;
+  const accessibleOnly = req.query.accessibleOnly === 'true' || req.query.accessibleOnly === true;
+
+  if (isNaN(limit) || limit < 1 || limit > 50) {
+    throw ApiError.validation('Query parameter "limit" must be an integer between 1 and 50');
+  }
+
+  const trendingService = require('../services/trendingService');
+  const result = await trendingService.getTrending({
+    viewer: req.user,
+    limit,
+    accessibleOnly
+  });
+
+  res.status(200).json(result);
+};
+
 module.exports = {
   createContent,
   listContent,
   getContentById,
   updateContent,
-  deleteContent
+  deleteContent,
+  recordView,
+  likeContent,
+  unlikeContent,
+  getTrending
 };

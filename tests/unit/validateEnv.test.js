@@ -13,6 +13,7 @@ describe('Unit: validateEnv', () => {
     PORT: '8080',
     JWT_SECRET: 'super-long-secure-random-jwt-secret-for-production-min-32-chars!',
     EMAIL_TOKEN_SECRET: 'super-long-secure-random-email-token-secret-for-production!',
+    ANALYTICS_HASH_SECRET: 'super-long-secure-random-analytics-hash-secret-for-production-min-32!',
     CORS_ORIGIN: 'https://creatorhub.example.com,https://admin.creatorhub.example.com',
     RATE_LIMIT_ENABLED: 'true',
     STORAGE_DRIVER: 'cloudinary',
@@ -149,7 +150,9 @@ describe('Unit: validateEnv', () => {
         JWT_SECRET: 'super-secret-jwt-key-change-in-production-min32chars'
       });
       expect(defaultJwtRes.valid).toBe(false);
-      expect(defaultJwtRes.errors.some((e) => e.includes('JWT_SECRET cannot be the default'))).toBe(true);
+      expect(defaultJwtRes.errors.some((e) => e.includes('JWT_SECRET cannot be the default'))).toBe(
+        true
+      );
 
       const shortJwtRes = validateEnv({
         ...validProdEnv,
@@ -163,7 +166,22 @@ describe('Unit: validateEnv', () => {
         EMAIL_TOKEN_SECRET: 'super-secret-email-token-key-change-in-prod-min32'
       });
       expect(defaultEmailSecretRes.valid).toBe(false);
-      expect(defaultEmailSecretRes.errors.some((e) => e.includes('EMAIL_TOKEN_SECRET cannot be the default'))).toBe(true);
+      expect(
+        defaultEmailSecretRes.errors.some((e) =>
+          e.includes('EMAIL_TOKEN_SECRET cannot be the default')
+        )
+      ).toBe(true);
+
+      const defaultAnalyticsHashRes = validateEnv({
+        ...validProdEnv,
+        ANALYTICS_HASH_SECRET: 'super-secret-analytics-hash-key-change-in-prod-min32'
+      });
+      expect(defaultAnalyticsHashRes.valid).toBe(false);
+      expect(
+        defaultAnalyticsHashRes.errors.some((e) =>
+          e.includes('ANALYTICS_HASH_SECRET cannot be the default')
+        )
+      ).toBe(true);
     });
 
     test('rejects missing SMTP credentials in production when MAIL_DRIVER is "smtp"', () => {
@@ -177,4 +195,3 @@ describe('Unit: validateEnv', () => {
     });
   });
 });
-

@@ -1,5 +1,12 @@
 const { Op } = require('sequelize');
-const { sequelize, Subscription, Tier, User, CreatorProfile } = require('../models');
+const {
+  sequelize,
+  Subscription,
+  Tier,
+  User,
+  CreatorProfile,
+  SubscriptionEvent
+} = require('../models');
 const { isActiveSubscription } = require('../utils/subscriptionStatus');
 
 const formatSubscription = (instance) => {
@@ -135,6 +142,19 @@ const subscriptionStore = {
           { transaction }
         );
 
+        // Record historical subscription event inside same transaction
+        await SubscriptionEvent.create(
+          {
+            subscriberId,
+            creatorId,
+            event: 'created',
+            fromTierId: null,
+            toTierId: tier.id,
+            createdAt: now
+          },
+          { transaction }
+        );
+
         await transaction.commit();
 
         const reloaded = await Subscription.findByPk(newSub.id, {
@@ -153,7 +173,7 @@ const subscriptionStore = {
       const isActive = isActiveSubscription(existing, now);
 
       if (isSameTier && isActive) {
-        // Idempotent: same tier and active
+        // Idempotent: same tier and active (records nothing)
         await transaction.commit();
         return {
           subscription: formatSubscription(existing),
@@ -164,8 +184,10 @@ const subscriptionStore = {
 
       const previousTier = existing.tier ? existing.tier.name : null;
       let action = 'upgraded';
+      let eventType = 'tier_changed';
       if (!isActive) {
         action = 'reactivated';
+        eventType = 'reactivated';
       } else if (existing.tier && tier.rank < existing.tier.rank) {
         action = 'downgraded';
       }
@@ -177,6 +199,19 @@ const subscriptionStore = {
           status: 'active',
           startedAt: now,
           endsAt: null
+        },
+        { transaction }
+      );
+
+      // Record subscription change event inside same transaction
+      await SubscriptionEvent.create(
+        {
+          subscriberId,
+          creatorId,
+          event: eventType,
+          fromTierId: existing.tierId,
+          toTierId: tier.id,
+          createdAt: now
         },
         { transaction }
       );
@@ -240,25 +275,66 @@ const subscriptionStore = {
 
   /**
    * Cancel an existing subscription (marks status as 'cancelled')
+   * Writes subscription_events cancellation row inside same transaction.
    */
   async cancel({ subscriberId, creatorId }) {
-    const existing = await Subscription.findOne({
-      where: { subscriberId, creatorId },
-      include: [{ model: Tier, as: 'tier' }]
-    });
+    const transaction = await sequelize.transaction();
 
-    if (!existing) return null;
+    try {
+      const existing = await Subscription.findOne({
+        where: { subscriberId, creatorId },
+        include: [{ model: Tier, as: 'tier' }],
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
 
-    await existing.update({
-      status: 'cancelled',
-      endsAt: new Date()
-    });
+      if (!existing) {
+        await transaction.commit();
+        return null;
+      }
 
-    const reloaded = await Subscription.findByPk(existing.id, {
-      include: [{ model: Tier, as: 'tier' }]
-    });
+      const now = new Date();
 
-    return formatSubscription(reloaded);
+      await existing.update(
+        {
+          status: 'cancelled',
+          endsAt: now
+        },
+        { transaction }
+      );
+
+      // Record cancellation event inside same transaction
+      await SubscriptionEvent.create(
+        {
+          subscriberId,
+          creatorId,
+          event: 'cancelled',
+          fromTierId: existing.tierId,
+          toTierId: null,
+          createdAt: now
+        },
+        { transaction }
+      );
+
+      await transaction.commit();
+
+      // TODO(future): emit 'expired' event if background worker starts expiring subscriptions via endsAt
+
+      const reloaded = await Subscription.findByPk(existing.id, {
+        include: [{ model: Tier, as: 'tier' }]
+      });
+
+      return formatSubscription(reloaded);
+    } catch (err) {
+      if (transaction && !transaction.finished) {
+        try {
+          await transaction.rollback();
+        } catch (_rbErr) {
+          // transaction already rolled back
+        }
+      }
+      throw err;
+    }
   },
 
   /**

@@ -4,6 +4,8 @@ const emailWorker = require('./emailWorker');
 const { startPurgeJob, stopPurgeJob } = require('./purgeJob');
 const { startDigestJob, stopDigestJob } = require('./digestJob');
 const { startReconcileJob, stopReconcileJob } = require('./firebaseReconcileJob');
+const { startTrendingJob, stopTrendingJob } = require('./trendingJob');
+const { startRollupJob, stopRollupJob } = require('./rollupJob');
 
 let jobsStarted = false;
 
@@ -16,6 +18,8 @@ function startJobs() {
   startPurgeJob();
   startDigestJob();
   startReconcileJob();
+  startTrendingJob();
+  startRollupJob();
 }
 
 async function stopJobs() {
@@ -23,6 +27,8 @@ async function stopJobs() {
   jobsStarted = false;
 
   console.log('[Jobs] Stopping background workers and schedulers...');
+  stopRollupJob();
+  stopTrendingJob();
   stopReconcileJob();
   stopDigestJob();
   stopPurgeJob();

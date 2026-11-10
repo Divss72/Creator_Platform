@@ -43,6 +43,14 @@ module.exports = {
     FIREBASE_TOKEN: {
       WINDOW_MS: 15 * 60 * 1000, // 15 minutes
       MAX_REQUESTS: 10
+    },
+    VIEWS: {
+      WINDOW_MS: 60 * 1000, // 1 minute
+      MAX_REQUESTS: 120
+    },
+    ANALYTICS_READ: {
+      WINDOW_MS: 60 * 1000, // 1 minute
+      MAX_REQUESTS: 60
     }
   },
 
