@@ -1,6 +1,6 @@
 'use strict';
 
-const { domainEvents, DOMAIN_EVENTS } = require('./domainEvents');
+const { domainEvents, DOMAIN_EVENTS, trackTask } = require('./domainEvents');
 
 let registered = false;
 
@@ -13,8 +13,7 @@ function registerDomainListeners() {
   registered = true;
 
   domainEvents.on(DOMAIN_EVENTS.SUBSCRIPTION_CHANGED, (payload) => {
-    // Fire-and-forget async wrapper
-    Promise.resolve().then(async () => {
+    const task = Promise.resolve().then(async () => {
       try {
         const { subscriberId, creatorId, action, tier } = payload;
 
@@ -39,10 +38,12 @@ function registerDomainListeners() {
         console.error('[DomainListener] Error in subscription.changed handler:', err.message);
       }
     });
+
+    trackTask(task);
   });
 
   domainEvents.on(DOMAIN_EVENTS.CONTENT_CREATED, (payload) => {
-    Promise.resolve().then(async () => {
+    const task = Promise.resolve().then(async () => {
       try {
         const notificationService = require('../services/notificationService');
         await notificationService.enqueueNewPostEmails(payload);
@@ -50,6 +51,8 @@ function registerDomainListeners() {
         console.error('[DomainListener] Failed to enqueue new post emails:', err.message);
       }
     });
+
+    trackTask(task);
   });
 }
 

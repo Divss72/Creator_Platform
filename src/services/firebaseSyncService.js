@@ -23,6 +23,20 @@ class FirebaseSyncService {
   }
 
   /**
+   * Alias for flushDebouncedSyncs() for test convenience.
+   */
+  async flush() {
+    return this.flushDebouncedSyncs();
+  }
+
+  /**
+   * Immediately sync creator metrics without debouncing.
+   */
+  async syncCreatorNow(creatorId) {
+    return this.syncCreatorMetrics(creatorId, { immediate: true });
+  }
+
+  /**
    * Cancel all pending debounced sync timers without executing.
    */
   cancelAllSyncs() {

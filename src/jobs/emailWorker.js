@@ -5,21 +5,53 @@ const { outboxStore } = require('../store');
 const { processOutboxRow } = require('../services/outboxService');
 
 class EmailWorker {
-  constructor() {
+  constructor({ now, driver, batchSize = env.EMAIL_WORKER_BATCH_SIZE } = {}) {
     this.isRunning = false;
     this.pollTimer = null;
     this.reclaimTimer = null;
     this.currentBatchPromise = null;
+    this.nowFn = typeof now === 'function' ? now : () => (now instanceof Date ? now : new Date());
+    this.driver = driver || null;
+    this.batchSize = batchSize;
   }
 
   /**
-   * Start the background email worker
+   * Process a single batch immediately without timers.
+   * Useful for deterministic testing and manual runs.
+   *
+   * @param {Object} [options]
+   * @param {Date} [options.now]
+   * @param {number} [options.batchSize]
+   * @returns {Promise<{ processed: number, rows: Array }>}
+   */
+  async runOnce({ now, batchSize = this.batchSize } = {}) {
+    const effectiveNow = now || this.nowFn();
+    const rows = await outboxStore.claimDueRows({
+      batchSize,
+      now: effectiveNow
+    });
+
+    if (!rows || rows.length === 0) {
+      return { processed: 0, rows: [] };
+    }
+
+    for (const row of rows) {
+      await processOutboxRow(row, { now: effectiveNow, driver: this.driver });
+    }
+
+    return { processed: rows.length, rows };
+  }
+
+  /**
+   * Start the background email worker with intervals
    */
   start() {
     if (this.isRunning) return;
     this.isRunning = true;
 
-    console.log('[EmailWorker] Started outbox processing worker.');
+    if (env.LOG_LEVEL !== 'silent' && env.NODE_ENV !== 'test') {
+      console.log('[EmailWorker] Started outbox processing worker.');
+    }
 
     // Immediate initial poll
     this.scheduleNextPoll(100);
@@ -28,11 +60,13 @@ class EmailWorker {
     this.reclaimTimer = setInterval(async () => {
       try {
         const reclaimed = await outboxStore.reclaimStuckRows(5 * 60 * 1000);
-        if (reclaimed > 0) {
+        if (reclaimed > 0 && env.LOG_LEVEL !== 'silent' && env.NODE_ENV !== 'test') {
           console.log(`[EmailWorker] Reclaimed ${reclaimed} stuck outbox rows.`);
         }
       } catch (err) {
-        console.error('[EmailWorker] Error reclaiming stuck rows:', err.message);
+        if (env.LOG_LEVEL !== 'silent') {
+          console.error('[EmailWorker] Error reclaiming stuck rows:', err.message);
+        }
       }
     }, 60 * 1000);
   }
@@ -57,7 +91,9 @@ class EmailWorker {
       this.currentBatchPromise = this.processBatch();
       await this.currentBatchPromise;
     } catch (err) {
-      console.error('[EmailWorker] Error during batch processing:', err.message);
+      if (env.LOG_LEVEL !== 'silent') {
+        console.error('[EmailWorker] Error during batch processing:', err.message);
+      }
     } finally {
       this.currentBatchPromise = null;
       if (this.isRunning) {
@@ -70,28 +106,14 @@ class EmailWorker {
    * Fetch and process one batch of due outbox items
    */
   async processBatch() {
-    const rows = await outboxStore.claimDueRows({ batchSize: env.EMAIL_WORKER_BATCH_SIZE });
-    if (!rows || rows.length === 0) {
-      return 0;
-    }
-
+    const { processed } = await this.runOnce();
     const intervalMs = Math.max(10, Math.floor(1000 / env.EMAIL_RATE_LIMIT_PER_SEC));
 
-    for (const row of rows) {
-      if (!this.isRunning) {
-        // Worker was stopped, leave remaining rows in 'sending' to be reclaimed or gracefully abort
-        break;
-      }
-
-      await processOutboxRow(row);
-
-      // Rate limit delay between individual sends
-      if (intervalMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, intervalMs));
-      }
+    if (processed > 0 && intervalMs > 0 && this.isRunning) {
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
     }
 
-    return rows.length;
+    return processed;
   }
 
   /**
@@ -114,11 +136,21 @@ class EmailWorker {
     if (this.currentBatchPromise) {
       try {
         await this.currentBatchPromise;
-      } catch (_) {}
+      } catch (_err) {}
     }
 
-    console.log('[EmailWorker] Stopped outbox processing worker.');
+    if (env.LOG_LEVEL !== 'silent' && env.NODE_ENV !== 'test') {
+      console.log('[EmailWorker] Stopped outbox processing worker.');
+    }
   }
 }
 
-module.exports = new EmailWorker();
+function createEmailWorker(options = {}) {
+  return new EmailWorker(options);
+}
+
+const defaultEmailWorker = createEmailWorker();
+
+module.exports = defaultEmailWorker;
+module.exports.createEmailWorker = createEmailWorker;
+module.exports.default = defaultEmailWorker;

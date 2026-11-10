@@ -1,94 +1,31 @@
-const http = require('http');
-const app = require('./app');
-const env = require('./config/env');
-const { sequelize } = require('./models');
-const { initRealtime, closeRealtime } = require('./realtime');
-const { attachGraphQL } = require('./graphql');
-const { registerDomainListeners } = require('./events/listeners');
-const { startJobs, stopJobs } = require('./jobs');
+'use strict';
 
-async function startServer() {
+const { bootstrap } = require('./bootstrap');
+
+async function start() {
   try {
-    await sequelize.authenticate();
-    console.log('[CreatorHub] Database connection verified successfully.');
+    const instance = await bootstrap();
+
+    const shutdown = async (signal) => {
+      console.log(`[CreatorHub] Received ${signal}. Shutting down gracefully...`);
+      try {
+        await instance.close();
+        console.log('[CreatorHub] Clean shutdown complete.');
+        process.exit(0);
+      } catch (err) {
+        console.error('[CreatorHub] Error during shutdown:', err.message);
+        process.exit(1);
+      }
+    };
+
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+
+    return instance.httpServer;
   } catch (error) {
-    console.error('\n================================================================');
-    console.error('[CreatorHub] FATAL: Unable to connect to MySQL database!');
-    console.error(
-      `Config: host=${env.DB_HOST}, port=${env.DB_PORT}, db=${env.DB_NAME}, user=${env.DB_USER}`
-    );
-    console.error(`Reason: ${error.message}`);
-    console.error('\nTroubleshooting Checklist:');
-    console.error(
-      ' 1. Ensure MySQL service or Docker container is running (e.g. `docker compose up -d`).'
-    );
-    console.error(
-      ' 2. Verify DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASSWORD in your .env file.'
-    );
-    console.error(' 3. Ensure the database exists by running `npm run db:create`.');
-    console.error('================================================================\n');
+    console.error('[CreatorHub] Fatal boot error:', error.message);
     process.exit(1);
   }
-
-  // Register in-process domain event listeners
-  registerDomainListeners();
-
-  const server = http.createServer(app);
-  initRealtime(server);
-
-  // Attach Apollo GraphQL server to app's dedicated graphqlRouter
-  const apolloServer = await attachGraphQL(app.graphqlRouter, server);
-
-  // Start background jobs (outbox worker, purge, digest cron, firebase reconcile)
-  startJobs();
-
-  server.listen(env.PORT, () => {
-    console.log(`[CreatorHub] API server listening on port ${env.PORT} in ${env.NODE_ENV} mode`);
-    console.log(
-      `[CreatorHub] GraphQL endpoint available at POST http://localhost:${env.PORT}/graphql`
-    );
-  });
-
-  // Graceful shutdown order: Jobs -> Socket.io -> Apollo -> HTTP server -> DB connection
-  const shutdown = async (signal) => {
-    console.log(`[CreatorHub] Received ${signal}. Shutting down gracefully...`);
-    try {
-      await stopJobs();
-      console.log('[CreatorHub] Background jobs stopped.');
-    } catch (err) {
-      console.error('[CreatorHub] Error stopping background jobs:', err.message);
-    }
-
-    try {
-      await closeRealtime();
-      console.log('[CreatorHub] Socket.io connections closed.');
-    } catch (err) {
-      console.error('[CreatorHub] Error closing Socket.io:', err.message);
-    }
-
-    try {
-      await apolloServer.stop();
-      console.log('[CreatorHub] Apollo Server stopped.');
-    } catch (err) {
-      console.error('[CreatorHub] Error stopping Apollo Server:', err.message);
-    }
-
-    server.close(async () => {
-      try {
-        await sequelize.close();
-        console.log('[CreatorHub] Database connection closed.');
-      } catch (err) {
-        console.error('[CreatorHub] Error closing database connection:', err.message);
-      }
-      console.log('[CreatorHub] HTTP server closed.');
-      process.exit(0);
-    });
-  };
-
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
-
-  return server;
 }
 
-module.exports = startServer();
+module.exports = start();
