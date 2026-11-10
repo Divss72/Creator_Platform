@@ -2,7 +2,12 @@
 
 const { createTestApi } = require('../helpers/api');
 const { resetDb } = require('../helpers/db');
-const { createCreator, createSubscriber, createPost, createSubscription } = require('../helpers/factories');
+const {
+  createCreator,
+  createSubscriber,
+  createPost,
+  createSubscription
+} = require('../helpers/factories');
 const { countQueries } = require('../helpers/queryCounter');
 
 describe('Integration: Paywall Matrix & Preview Parity', () => {
@@ -73,8 +78,18 @@ describe('Integration: Paywall Matrix & Preview Parity', () => {
       { user: creator, post: proPost, expectedLocked: false, label: 'OwnerCreator -> Pro Post' },
       { user: creator, post: vipPost, expectedLocked: false, label: 'OwnerCreator -> VIP Post' },
       // Non-author Creator
-      { user: otherCreator, post: freePost, expectedLocked: false, label: 'OtherCreator -> Free Post' },
-      { user: otherCreator, post: proPost, expectedLocked: true, label: 'OtherCreator -> Pro Post' },
+      {
+        user: otherCreator,
+        post: freePost,
+        expectedLocked: false,
+        label: 'OtherCreator -> Free Post'
+      },
+      {
+        user: otherCreator,
+        post: proPost,
+        expectedLocked: true,
+        label: 'OtherCreator -> Pro Post'
+      },
       { user: otherCreator, post: vipPost, expectedLocked: true, label: 'OtherCreator -> VIP Post' }
     ];
 
@@ -110,7 +125,7 @@ describe('Integration: Paywall Matrix & Preview Parity', () => {
       });
     }
 
-    // Query counter should verify that listing 10 items executes a constant bounded number of queries (<= 4)
+    // Query counter should verify that listing 10 items executes a constant bounded number of queries (<= 7 in v1.0 with batch media, likes, comments)
     const { result, queryCount } = await countQueries(async () => {
       return api.request
         .get('/api/content?limit=10')
@@ -119,7 +134,6 @@ describe('Integration: Paywall Matrix & Preview Parity', () => {
 
     expect(result.status).toBe(200);
     expect(result.body.items).toHaveLength(10);
-    expect(queryCount).toBeLessThanOrEqual(5);
+    expect(queryCount).toBeLessThanOrEqual(7);
   });
 });
-

@@ -198,6 +198,32 @@ const queryResolvers = {
       items: result.items,
       nextBefore: result.nextBefore
     };
+  },
+
+  /**
+   * Trending content items computed via gravity ranking.
+   */
+  async trending(_parent, args, context) {
+    const { limit = 10, accessibleOnly = false } = args;
+
+    if (typeof limit !== 'number' || limit < 1 || limit > 50) {
+      throw ApiError.validation('Argument "limit" must be between 1 and 50');
+    }
+
+    const trendingService = require('../../services/trendingService');
+    const result = await trendingService.getTrending({
+      viewer: context.viewer,
+      limit,
+      accessibleOnly: Boolean(accessibleOnly)
+    });
+
+    return {
+      computedAt: result.computedAt,
+      items: result.items.map((entry) => ({
+        rank: entry.rank,
+        item: entry.item
+      }))
+    };
   }
 };
 

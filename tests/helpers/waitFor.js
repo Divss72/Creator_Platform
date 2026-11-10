@@ -31,4 +31,3 @@ async function waitFor(predicate, { timeout = 5000, interval = 50 } = {}) {
 }
 
 module.exports = { waitFor };
-

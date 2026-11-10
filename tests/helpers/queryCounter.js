@@ -44,4 +44,3 @@ async function countQueries(fn) {
 }
 
 module.exports = { trackQueries, countQueries };
-

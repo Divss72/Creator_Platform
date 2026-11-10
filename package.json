@@ -40,7 +40,10 @@
     "verify:firebase": "node scripts/verify-firebase.js",
     "digest:run": "node scripts/digest-run.js",
     "email:status": "node scripts/email-status.js",
-    "firebase:resync": "node scripts/firebase-resync.js"
+    "firebase:resync": "node scripts/firebase-resync.js",
+    "trending:recompute": "node scripts/trending-recompute.js",
+    "analytics:rebuild": "node scripts/analytics-rebuild.js",
+    "demo:reset": "node scripts/demo-reset.js"
   },
   "dependencies": {
     "@apollo/server": "^5.5.1",

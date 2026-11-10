@@ -7,4 +7,3 @@ module.exports = async function globalTeardown() {
     await sequelize.close();
   } catch (_err) {}
 };
-

@@ -9,6 +9,12 @@ const { sequelize } = require('../../src/models');
 async function resetDb() {
   await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
   const tables = [
+    'content_trending',
+    'creator_daily_stats',
+    'subscription_events',
+    'content_daily_stats',
+    'content_view_dedupe',
+    'content_reactions',
     'comments',
     'media',
     'email_outbox',
@@ -30,4 +36,3 @@ async function resetDb() {
 }
 
 module.exports = { resetDb };
-

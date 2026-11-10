@@ -7,7 +7,10 @@
  * Usage: node scripts/smoke-test.js [BASE_URL]
  */
 
-const baseUrl = (process.argv[2] || process.env.APP_BASE_URL || 'http://localhost:5000').replace(/\/+$/, '');
+const baseUrl = (process.argv[2] || process.env.APP_BASE_URL || 'http://localhost:5000').replace(
+  /\/+$/,
+  ''
+);
 
 async function runSmokeTests() {
   console.log(`[SmokeTest] Starting verification against: ${baseUrl}\n`);
@@ -57,7 +60,9 @@ async function runSmokeTests() {
     return data.error && data.error.code === 'NOT_FOUND';
   });
 
-  console.log(`\n[SmokeTest] Finished: ${failures === 0 ? 'ALL CHECKS PASSED' : `${failures} CHECKS FAILED`}`);
+  console.log(
+    `\n[SmokeTest] Finished: ${failures === 0 ? 'ALL CHECKS PASSED' : `${failures} CHECKS FAILED`}`
+  );
   if (failures > 0) {
     process.exit(1);
   }
@@ -67,4 +72,3 @@ runSmokeTests().catch((err) => {
   console.error('[SmokeTest] Fatal error:', err);
   process.exit(1);
 });
-

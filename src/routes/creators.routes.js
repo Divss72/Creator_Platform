@@ -3,6 +3,7 @@
 const { Router } = require('express');
 const creatorsController = require('../controllers/creators.controller');
 const mediaController = require('../controllers/media.controller');
+const analyticsController = require('../controllers/analytics.controller');
 const requireAuth = require('../middleware/requireAuth');
 const requireRole = require('../middleware/requireRole');
 const validate = require('../middleware/validate');
@@ -11,7 +12,8 @@ const asyncHandler = require('../utils/asyncHandler');
 const {
   userWritesLimiter,
   mediaUploadLimiter,
-  firebaseTokenLimiter
+  firebaseTokenLimiter,
+  analyticsReadLimiter
 } = require('../middleware/rateLimiters');
 const { avatarUpload } = require('../middleware/upload');
 
@@ -52,6 +54,33 @@ router.get(
   requireAuth,
   requireRole('creator'),
   asyncHandler(creatorsController.getDashboardSubscribers)
+);
+
+// Creator Analytics Overview
+router.get(
+  '/me/analytics/overview',
+  requireAuth,
+  requireRole('creator'),
+  analyticsReadLimiter,
+  asyncHandler(analyticsController.getOverview)
+);
+
+// Creator Analytics Timeseries
+router.get(
+  '/me/analytics/timeseries',
+  requireAuth,
+  requireRole('creator'),
+  analyticsReadLimiter,
+  asyncHandler(analyticsController.getTimeseries)
+);
+
+// Creator Analytics Top Content
+router.get(
+  '/me/analytics/top-content',
+  requireAuth,
+  requireRole('creator'),
+  analyticsReadLimiter,
+  asyncHandler(analyticsController.getTopContent)
 );
 
 // Public creator profile
