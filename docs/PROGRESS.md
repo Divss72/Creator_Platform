@@ -203,3 +203,33 @@
 - **Zero Raw Body Leakage**: New post notifications use sanitized plain-text excerpts derived via `sanitizeService`, never raw HTML or secret post bodies.
 - **Write Debouncing & Coalescing**: Rapid bursts of subscription changes are coalesced within a configurable debounce buffer (`FIREBASE_SYNC_DEBOUNCE_MS`, default 1000ms), writing to Firebase Realtime Database at most once per debounce window per creator.
 - **Stateless HMAC Unsubscribe**: One-click unsubscribe links and headers use HMAC-SHA256 signatures with 30-day expiration, eliminating the need for separate unsubscribe database tables.
+
+### v0.8: Tests + CI/CD (Completed)
+
+- [x] Implementation plan approved
+- [x] Pinned Node LTS (`22.14.0`) via `.nvmrc` and strict `package.json` engines
+- [x] ESLint flat configuration (`eslint.config.js`) enforcing architectural boundaries (no Sequelize/model imports outside `store/`)
+- [x] Prettier configuration and whole-codebase formatting
+- [x] Refactored `src/app.js` into side-effect-free `createApp(overrides)`
+- [x] Created `src/bootstrap.js` managing deterministic graceful startup/shutdown order
+- [x] Deterministic zero-sleep hooks: `whenIdle()`, `firebaseSyncService.flush()`, `emailWorker.runOnce()`, `waitFor()`
+- [x] Multi-project Jest configuration (`jest.config.js`) with unit and integration projects
+- [x] Test database safety mechanism enforcing `NODE_ENV=test` and `_test` database name suffix
+- [x] Test helpers: `api.js`, `db.js`, `factories.js`, `queryCounter.js`, `clock.js`, `waitFor.js`
+- [x] Comprehensive unit test suites (82/82 tests passed):
+  - `accessService.test.js`
+  - `subscriptionStatus.test.js`
+  - `sanitizeService.test.js`
+  - `contentPresenter.test.js`
+  - `validateEnv.test.js`
+- [x] Integration test suites:
+  - `subscriptionFlow.integration.test.js` (full lifecycle, concurrency handling, immediate paywall access reflection)
+  - `paywallMatrix.integration.test.js` (personas x tiers matrix and O(1) query complexity verification)
+  - `auth.integration.test.js` (registration, login, authentication, and role authorization)
+  - `health.integration.test.js` (health liveness, degraded DB 503 status, version token gate)
+- [x] Production readiness: `scripts/smoke-test.js`, `scripts/migrate-and-start.js`, `scripts/seed-demo.js`
+- [x] Multi-stage `Dockerfile` and `.dockerignore` running as non-root `node` user with healthcheck
+- [x] GitHub Actions workflows: `.github/workflows/ci.yml`, `.github/workflows/cd.yml`
+- [x] Dependabot configuration (`.github/dependabot.yml`) and PR template (`.github/pull_request_template.md`)
+- [x] Documentation: `docs/TESTING.md`, `docs/CI-CD.md`, `docs/DEPLOYMENT.md`, `docs/PR-v0.8.md`
+

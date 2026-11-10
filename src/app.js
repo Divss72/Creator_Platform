@@ -73,8 +73,9 @@ function createApp(overrides = {}) {
       dbStatus = 'down';
     }
 
-    res.status(200).json({
-      status: 'ok',
+    const isHealthy = dbStatus === 'up';
+    res.status(isHealthy ? 200 : 503).json({
+      status: isHealthy ? 'ok' : 'degraded',
       db: dbStatus
     });
   });
