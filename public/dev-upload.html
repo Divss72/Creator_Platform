@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CreatorHub Dev - Media & Avatar Upload</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --card: #1e293b;
+        --border: #334155;
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+        --primary: #6366f1;
+        --primary-hover: #4f46e5;
+        --danger: #ef4444;
+        --success: #10b981;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .container {
+        max-width: 720px;
+        width: 100%;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+      }
+      p.subtitle {
+        color: var(--text-muted);
+        margin-top: 0;
+        margin-bottom: 24px;
+        font-size: 0.9rem;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+      .form-group {
+        margin-bottom: 16px;
+      }
+      label {
+        display: block;
+        font-weight: 500;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+      }
+      input[type='text'],
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px 12px;
+        background: #090d16;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        font-family: inherit;
+        font-size: 0.9rem;
+      }
+      input[type='file'] {
+        display: block;
+        margin-top: 4px;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+      button {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 10px 18px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+      button:hover {
+        background: var(--primary-hover);
+      }
+      .response-box {
+        background: #090d16;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 12px;
+        font-family: monospace;
+        font-size: 0.85rem;
+        max-height: 280px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+      .preview-box {
+        margin-top: 12px;
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+      .preview-box img {
+        max-width: 180px;
+        max-height: 140px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .tab-btn {
+        background: #090d16;
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+        padding: 8px 14px;
+        border-radius: 6px;
+      }
+      .tab-btn.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>CreatorHub Media & Avatar Uploader (Dev Tool)</h1>
+      <p class="subtitle">
+        Development test interface for post media attachments and creator avatar uploads.
+      </p>
+
+      <div class="tabs">
+        <button class="tab-btn active" id="tabPostMedia" onclick="switchTab('post')">
+          Post Media Upload
+        </button>
+        <button class="tab-btn" id="tabAvatar" onclick="switchTab('avatar')">
+          Creator Avatar Upload
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="form-group">
+          <label for="jwtToken">Creator JWT Token (Bearer)</label>
+          <textarea id="jwtToken" rows="2" placeholder="Paste creator JWT token here..."></textarea>
+        </div>
+
+        <div class="form-group" id="contentIdGroup">
+          <label for="contentId">Target Post (Content ID)</label>
+          <input
+            type="text"
+            id="contentId"
+            placeholder="e.g. c1111111-1111-4111-8111-111111111111"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="fileInput"
+            >Choose File (Images max 5MB, Videos max 50MB, Avatar max 2MB)</label
+          >
+          <input type="file" id="fileInput" name="file" />
+        </div>
+
+        <button id="uploadBtn" onclick="handleUpload()">Upload to Storage</button>
+      </div>
+
+      <div class="card">
+        <label>Response Status</label>
+        <div
+          id="statusText"
+          style="margin-bottom: 8px; font-weight: bold; color: var(--text-muted)"
+        >
+          Ready
+        </div>
+        <label>Server Response JSON</label>
+        <div class="response-box" id="responseBox">No requests sent yet.</div>
+        <div class="preview-box" id="previewBox" style="display: none">
+          <div>
+            <label>Preview</label>
+            <img id="previewImg" src="" alt="Uploaded media preview" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let activeTab = 'post';
+
+      function switchTab(tab) {
+        activeTab = tab;
+        document.getElementById('tabPostMedia').classList.toggle('active', tab === 'post');
+        document.getElementById('tabAvatar').classList.toggle('active', tab === 'avatar');
+        document.getElementById('contentIdGroup').style.display = tab === 'post' ? 'block' : 'none';
+        document.getElementById('statusText').innerText = 'Ready';
+        document.getElementById('responseBox').innerText = 'No requests sent yet.';
+        document.getElementById('previewBox').style.display = 'none';
+      }
+
+      async function handleUpload() {
+        const token = document.getElementById('jwtToken').value.trim();
+        const contentId = document.getElementById('contentId').value.trim();
+        const fileInput = document.getElementById('fileInput');
+        const statusText = document.getElementById('statusText');
+        const responseBox = document.getElementById('responseBox');
+        const previewBox = document.getElementById('previewBox');
+        const previewImg = document.getElementById('previewImg');
+
+        if (!token) {
+          alert('Please provide a JWT token');
+          return;
+        }
+        if (activeTab === 'post' && !contentId) {
+          alert('Please provide a Content ID');
+          return;
+        }
+        if (!fileInput.files || fileInput.files.length === 0) {
+          alert('Please select a file');
+          return;
+        }
+
+        const file = fileInput.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const endpoint =
+          activeTab === 'post'
+            ? `/api/content/${encodeURIComponent(contentId)}/media`
+            : `/api/creators/me/avatar`;
+
+        const method = activeTab === 'post' ? 'POST' : 'PUT';
+
+        statusText.innerText = 'Uploading...';
+        statusText.style.color = 'var(--text-muted)';
+        responseBox.innerText = 'Waiting for server response...';
+        previewBox.style.display = 'none';
+
+        try {
+          const res = await fetch(endpoint, {
+            method,
+            headers: {
+              Authorization: `Bearer ${token}`
+            },
+            body: formData
+          });
+
+          const data = await res.json();
+          statusText.innerText = `HTTP ${res.status} ${res.statusText}`;
+          statusText.style.color = res.ok ? 'var(--success)' : 'var(--danger)';
+          responseBox.innerText = JSON.stringify(data, null, 2);
+
+          const url = (data.media && data.media.thumbnailUrl) || data.avatarUrl;
+          if (res.ok && url) {
+            previewImg.src = url;
+            previewBox.style.display = 'flex';
+          }
+        } catch (err) {
+          statusText.innerText = 'Network / Client Error';
+          statusText.style.color = 'var(--danger)';
+          responseBox.innerText = err.message;
+        }
+      }
+    </script>
+  </body>
+</html>

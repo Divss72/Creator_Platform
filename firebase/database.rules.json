@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "creatorStats": {
+      "$creatorId": {
+        ".read": "auth != null && auth.uid === $creatorId",
+        ".write": false
+      }
+    }
+  }
+}
