@@ -43,7 +43,7 @@
     "firebase:resync": "node scripts/firebase-resync.js"
   },
   "dependencies": {
-    "@apollo/server": "^5.5.1",
+    "@apollo/server": "^5.5.2",
     "@as-integrations/express4": "^1.1.2",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.11.0",
